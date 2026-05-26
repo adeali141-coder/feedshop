@@ -17,7 +17,7 @@
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent }
 body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--text-main); overflow:hidden; height:100dvh; width:100vw; }
-.page { display:none; height:calc(100dvh - 64px); overflow-y:auto; padding:16px; padding-bottom:24px; scroll-behavior:smooth }
+.page { display:none; height:calc(100dvh - 64px); overflow-y:auto; padding:16px; padding-bottom:100px; scroll-behavior:smooth }
 .page.active { display:block; animation:fadeUp .3s ease }
 @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
@@ -32,6 +32,7 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
 .btn-danger { background:var(--danger); color:#fff }
 .btn-ghost { background:transparent; color:var(--text2); border:1px solid var(--border) }
 .btn-sm { padding:6px 14px; font-size:12px; border-radius:8px }
+.btn-lg { padding:14px 24px; font-size:16px; font-weight:700; border-radius:14px; width:100%; box-shadow: 0 4px 14px rgba(16,185,129,.3) }
 .input { width:100%; padding:10px 14px; background:var(--input-bg); border:1px solid var(--border); border-radius:10px; color:var(--text-main); font-size:14px; font-family:inherit; outline:none; transition:border .2s }
 .input:focus { border-color:var(--primary) }
 
@@ -71,8 +72,6 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
     <div style="font-size:32px;font-weight:800;color:var(--primary)">Tokoku</div>
     <p style="font-size:14px;color:var(--text2);margin-bottom:24px">Platform Sewa Toko Online</p>
     <div id="authFormContainer">
-      
-      <!-- Login User -->
       <div id="loginForm">
         <h2 style="font-size:20px;font-weight:700;margin-bottom:16px">Login User</h2>
         <div style="display:flex;flex-direction:column;gap:12px;text-align:left">
@@ -85,7 +84,6 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
         <button type="button" class="btn btn-ghost" style="width:100%" onclick="showAdminLogin()"><i class="fas fa-shield-alt"></i> Login Super Admin</button>
       </div>
 
-      <!-- Register User -->
       <div id="registerForm" style="display:none">
         <h2 style="font-size:20px;font-weight:700;margin-bottom:16px">Buat Akun Baru</h2>
         <div style="display:flex;flex-direction:column;gap:12px;text-align:left">
@@ -99,7 +97,6 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
         <p style="margin-top:16px;font-size:13px;color:var(--text2)">Sudah punya akun? <a href="#" onclick="showLogin(); return false;" style="color:var(--primary);font-weight:600">Masuk</a></p>
       </div>
 
-      <!-- Login Admin -->
       <div id="adminLoginForm" style="display:none">
         <h2 style="font-size:20px;font-weight:700;margin-bottom:16px">Super Admin</h2>
         <div style="display:flex;flex-direction:column;gap:12px;text-align:left">
@@ -109,7 +106,6 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
         </div>
         <p style="margin-top:16px;font-size:13px;color:var(--text2)"><a href="#" onclick="showLogin(); return false;" style="color:var(--primary);font-weight:600">Kembali ke Login User</a></p>
       </div>
-
     </div>
   </div>
 </div>
@@ -129,17 +125,12 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
     <i class="fas fa-hourglass-end" style="font-size:48px;color:var(--danger);margin-bottom:16px"></i>
     <h2 style="font-size:20px;font-weight:700;margin-bottom:8px">Masa Sewa Habis</h2>
     <p style="font-size:14px;color:var(--text2);margin-bottom:24px">Silakan lakukan pembayaran untuk mengaktifkan kembali toko Anda.</p>
-    
     <div class="card" style="text-align:left;margin-bottom:16px">
       <h3 style="font-weight:700;margin-bottom:12px">Metode Pembayaran:</h3>
-      
-      <!-- QRIS -->
       <div style="text-align:center;margin-bottom:12px">
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=TOKOKU_QRIS_PAYMENT" style="border-radius:8px;border:1px solid var(--border);padding:8px;background:#fff" alt="QRIS">
         <p style="font-size:12px;font-weight:600;margin-top:4px;color:var(--text2)">Scan QRIS di atas</p>
       </div>
-
-      <!-- Bank Transfer -->
       <div style="background:var(--input-bg);padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px">
         <p style="font-weight:700;margin-bottom:4px"><i class="fas fa-university"></i> Transfer Bank BCA</p>
         <p style="letter-spacing:1px">1234567890 <button type="button" onclick="navigator.clipboard.writeText('1234567890');showToast('Nomor rekening disalin')" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:12px"><i class="fas fa-copy"></i></button></p>
@@ -147,10 +138,7 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
       </div>
       <p style="font-size:11px;color:var(--text3)">*Nominal sesuai paket sewa bulanan</p>
     </div>
-
-    <!-- Tombol Konfirmasi WA -->
     <a id="waConfirmLink" href="#" target="_blank" class="btn btn-primary" style="width:100%;margin-bottom:10px;text-decoration:none;background:#25D366"><i class="fab fa-whatsapp"></i> Konfirmasi via WhatsApp</a>
-    
     <button type="button" id="markPendingBtn" class="btn btn-accent" style="width:100%" onclick="markAsPending()"><i class="fas fa-check-circle"></i> Saya Sudah Chat Admin via WA</button>
   </div>
 </div>
@@ -167,7 +155,7 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
 
 <!-- ================= MAIN APP ================= -->
 <div id="app" style="display:none;height:100dvh;flex-direction:column;background:var(--page-bg)">
-  <header style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--block-bg);border-bottom:1px solid var(--border);flex-shrink:0;z-index:10">
+  <header style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--block-bg);border-top:1px solid var(--border);flex-shrink:0;z-index:10">
     <div style="display:flex;align-items:center;gap:10px">
       <div id="storeAvatar" style="width:34px;height:34px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:800"></div>
       <div><div id="storeNameTop" style="font-size:15px;font-weight:700"></div><div style="font-size:11px;color:var(--text3)" id="greetingText"></div></div>
@@ -211,11 +199,7 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
 </div>
 
 <script>
-// ============================================================
-// KONFIGURASI ADMIN & PEMBAYARAN
-// GANTI DENGAN INFO ANDA
-const ADMIN_WA_NUMBER = '6281234567890'; // Contoh: 6281234567890 (tanpa + atau 0)
-// ============================================================
+const ADMIN_WA_NUMBER = '6281234567890'; // Ganti dengan nomor WA Anda
 
 const DB = {
   get: (k) => { try { return JSON.parse(localStorage.getItem(k)) } catch { return null } },
@@ -241,9 +225,6 @@ function closeMoreMenu(e) { if(!e||e.target.id==='moreMenu') closeModal('moreMen
 function formatRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID') }
 function timeAgo(ts) { const d=Date.now()-ts; if(d<6e4) return 'Baru saja'; if(d<36e5) return Math.floor(d/6e4)+' mnt lalu'; if(d<864e5) return Math.floor(d/36e5)+' jam lalu'; return Math.floor(d/864e5)+' hari lalu'; }
 
-// ============================================================
-// AUTH SYSTEM
-// ============================================================
 function showLogin() { document.getElementById('loginForm').style.display='block'; document.getElementById('registerForm').style.display='none'; document.getElementById('adminLoginForm').style.display='none'; }
 function showRegister() { document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='block'; document.getElementById('adminLoginForm').style.display='none'; }
 function showAdminLogin() { document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='none'; document.getElementById('adminLoginForm').style.display='block'; }
@@ -268,7 +249,7 @@ function registerUser() {
   let users = DB.get('tk_users') || [];
   if(users.find(u => u.email === email)) return showToast('Email sudah terdaftar','error');
   
-  const newUser = { id: 'u_'+uid(), email, password: pass, storeName: store, ownerName: owner, phone, profilePic: '', mapUrl: '', pageBg: '#F3F4F6', blockBg: '#FFFFFF', role: 'user', status: 'active', expiryDate: Date.now() + 3*86400000, pendingPayment: false };
+  const newUser = { id: 'u_'+uid(), email, password: pass, storeName: store, ownerName: owner, phone, profilePic: '', mapUrl: '', bannerUrl: '', pageBg: '#F3F4F6', blockBg: '#FFFFFF', role: 'user', status: 'active', expiryDate: Date.now() + 3*86400000, pendingPayment: false };
   users.push(newUser);
   DB.set('tk_users', users);
   
@@ -306,7 +287,6 @@ function startApp() {
   const user = getUser();
   if(!user.id) return switchScreen('authScreen');
 
-  // Cek status sewa
   const isExpired = user.expiryDate < Date.now();
   if(isExpired && user.pendingPayment) {
     return switchScreen('pendingScreen');
@@ -315,7 +295,6 @@ function startApp() {
     return switchScreen('expiredScreen');
   }
 
-  // Apply Custom Colors
   document.documentElement.style.setProperty('--page-bg', user.pageBg || '#F3F4F6');
   document.documentElement.style.setProperty('--block-bg', user.blockBg || '#FFFFFF');
   
@@ -352,9 +331,6 @@ function checkActiveStatus() {
   }
 }
 
-// ============================================================
-// ADMIN PANEL
-// ============================================================
 function renderAdmin() {
   const users = DB.get('tk_users') || [];
   const active = users.filter(u => u.expiryDate >= Date.now() && !u.pendingPayment);
@@ -398,9 +374,6 @@ function adminActivate(id) { let users=DB.get('tk_users')||[]; users=users.map(u
 function adminExtend(id) { let users=DB.get('tk_users')||[]; users=users.map(u=>u.id===id?{...u,expiryDate:u.expiryDate+30*86400000}:u); DB.set('tk_users',users); renderAdmin(); }
 function adminDeactivate(id) { let users=DB.get('tk_users')||[]; users=users.map(u=>u.id===id?{...u,expiryDate:Date.now()-1000,pendingPayment:false}:u); DB.set('tk_users',users); renderAdmin(); }
 
-// ============================================================
-// SEED DATA
-// ============================================================
 function seedData(userId) {
   if(DB.get(userId+'_products')) return;
   const products = [
@@ -414,9 +387,6 @@ function seedData(userId) {
   DB.set(userId+'_invlog', []);
 }
 
-// ============================================================
-// NAVIGATION
-// ============================================================
 function navigateTo(page) {
   state.currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -436,18 +406,20 @@ function navigateTo(page) {
 }
 
 // ============================================================
-// KATALOG PRODUK
+// KATALOG PRODUK (HARGA MERAH REGULER & BANNER DARI DB)
 // ============================================================
 function renderKatalog() {
   const user = getUser();
   const products = getData('products');
+  const bannerSrc = user.bannerUrl || `https://picsum.photos/seed/banner${user.id}/800/300`;
+  
   const pg = document.getElementById('page-katalog');
   pg.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:16px">
       
       <!-- Header Banner -->
       <div style="position:relative;border-radius:16px;overflow:hidden;height:140px;background:linear-gradient(135deg,var(--primary),#059669)">
-        <img src="https://picsum.photos/seed/banner${user.id}/800/300" style="width:100%;height:100%;object-fit:cover;opacity:.6" onerror="this.style.display='none'">
+        <img src="${bannerSrc}" style="width:100%;height:100%;object-fit:cover;opacity:.7" onerror="this.style.display='none'">
         <div style="position:absolute;inset:0;padding:16px;display:flex;flex-direction:column;justify-content:flex-end">
           <h1 style="color:#fff;font-size:24px;font-weight:800;text-shadow:0 2px 4px rgba(0,0,0,.3)">${user.storeName || 'Toko Saya'}</h1>
         </div>
@@ -466,7 +438,7 @@ function renderKatalog() {
             <img src="${p.images[0]}" style="width:100%;aspect-ratio:1/1;object-fit:cover;background:#f0f0f0" onerror="this.src='https://picsum.photos/seed/${p.id}/400/400'">
             <div style="padding:10px">
               <div class="line-clamp-2" style="font-size:12px;font-weight:500;height:30px">${p.name}</div>
-              <div style="font-size:14px;font-weight:700;color:var(--primary);margin-top:4px">${formatRupiah(p.price)}</div>
+              <div style="font-size:14px;font-weight:400;color:var(--danger);margin-top:4px">${formatRupiah(p.price)}</div>
             </div>
           </div>
         `).join('')}
@@ -490,7 +462,6 @@ function showProductDetail(id) {
   const p = products.find(x => x.id === id);
   if(!p) return;
 
-  // Hapus komentar > 3 bulan (90 hari)
   const threeMonths = 90 * 86400000;
   p.comments = p.comments.filter(c => (Date.now() - c.time) < threeMonths);
   setData('products', products);
@@ -502,8 +473,6 @@ function showProductDetail(id) {
   const mc = document.getElementById('genModalContent');
   mc.innerHTML = `
     <div class="modal-handle"></div>
-    
-    <!-- Image Slider -->
     <div class="slider" style="border-radius:12px;overflow:hidden;margin-bottom:16px">
       ${p.images.map((img, idx) => `
         <div class="${img.includes('1000')?'tall':''}">
@@ -511,52 +480,39 @@ function showProductDetail(id) {
         </div>
       `).join('')}
     </div>
-
-    <!-- Block 1: Info Dasar -->
     <div style="background:var(--block-bg);padding:16px;border-radius:14px;margin-bottom:16px">
       <h2 style="font-size:18px;font-weight:700;line-height:1.3">${p.name}</h2>
       <div style="margin-top:8px;font-size:20px;font-weight:800;color:var(--primary)">${formatRupiah(isFlashSale ? p.flashSalePrice : p.price)}</div>
       ${isFlashSale ? `<div style="font-size:12px;color:var(--text3);text-decoration:line-through">${formatRupiah(p.price)}</div>` : ''}
       <div style="margin-top:8px;font-size:12px;color:var(--text2)"><i class="fas fa-shopping-bag"></i> ${p.sold||0} terjual &nbsp; <i class="fas fa-star" style="color:var(--accent)"></i> ${p.rating||'-.-'}</div>
     </div>
-
-    <!-- Block 2: Flash Sale -->
     ${isFlashSale ? `
     <div style="background:rgba(239,68,68,.05);padding:16px;border-radius:14px;margin-bottom:16px;border:1px solid rgba(239,68,68,.2)">
       <div style="font-size:13px;font-weight:700;color:var(--danger);margin-bottom:8px"><i class="fas fa-bolt"></i> FLASH SALE berakhir dalam:</div>
       <div class="countdown" id="cd_${p.id}"><span>00</span>:<span>00</span>:<span>00</span></div>
     </div>
     ` : ''}
-
-    <!-- Block 3: Varian & Deskripsi -->
     <div style="background:var(--block-bg);padding:16px;border-radius:14px;margin-bottom:16px">
       ${p.variants && p.variants.length > 0 ? `<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;margin-bottom:6px">Varian</div><div style="display:flex;flex-wrap:wrap;gap:6px">${p.variants.map(v=>`<span style="padding:4px 10px;border-radius:20px;font-size:11px;background:var(--input-bg);border:1px solid var(--border)">${v}</span>`).join('')}</div></div>` : ''}
       <div style="font-size:12px;font-weight:700;margin-bottom:6px">Deskripsi</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${p.description}</p>
     </div>
-
-    <!-- Block 4: Tombol Aksi -->
     <div style="display:flex;gap:10px;margin-bottom:16px">
       <a href="https://wa.me/${user.phone}?text=${encodeURIComponent(waText)}" target="_blank" class="btn btn-primary" style="flex:1;text-decoration:none;background:#25D366"><i class="fab fa-whatsapp"></i> Pesan WA</a>
       <a href="${user.mapUrl||'#'}" target="_blank" class="btn btn-accent" style="flex:1;text-decoration:none"><i class="fas fa-map-marker-alt"></i> Cek Lokasi</a>
     </div>
-
-    <!-- Block 5: Video -->
     ${p.videoUrl ? `
     <div style="background:var(--block-bg);padding:16px;border-radius:14px;margin-bottom:16px">
       <div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fas fa-video"></i> Video Produk</div>
       <iframe width="100%" height="200" src="${p.videoUrl}" frameborder="0" allowfullscreen style="border-radius:10px"></iframe>
     </div>
     ` : ''}
-
-    <!-- Block 6: Sosial -->
     <div style="background:var(--block-bg);padding:16px;border-radius:14px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <button type="button" onclick="toggleLike('${p.id}')" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:var(--danger)"><i class="fas fa-heart"></i> ${p.likes}</button>
         <div style="font-size:14px;font-weight:600;color:var(--text2)"><i class="fas fa-comment" style="color:var(--info)"></i> ${p.comments.length}</div>
         <button type="button" onclick="shareProduct('${p.id}')" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:var(--primary)"><i class="fas fa-paper-plane"></i> Bagikan</button>
       </div>
-      
       <div style="max-height:200px;overflow-y:auto;border-top:1px solid var(--border);padding-top:10px">
         ${p.comments.map(c => `
           <div style="margin-bottom:10px">
@@ -573,8 +529,6 @@ function showProductDetail(id) {
         ${p.comments.length===0?'<div style="font-size:12px;color:var(--text3);text-align:center">Belum ada komentar</div>':''}
       </div>
     </div>
-
-    <!-- Block 7: Input Komentar -->
     <div style="display:flex;gap:8px;align-items:center">
       <input id="commentInput_${p.id}" class="input" placeholder="Tulis komentar..." style="flex:1" onkeydown="if(event.key==='Enter')addComment('${p.id}')">
       <button type="button" class="btn btn-primary btn-sm" onclick="addComment('${p.id}')"><i class="fas fa-paper-plane"></i></button>
@@ -622,7 +576,6 @@ function showProductForm(id=null) {
       </div>
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Varian (pisah koma)</label><input id="pVars" class="input" value="${p?p.variants.join(', '):''}"></div>
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">URL Gambar (pisah spasi/enter)</label><textarea id="pImgs" class="input" rows="2">${p?p.images.join('\n'):''}</textarea></div>
-      
       <div class="card" style="background:var(--input-bg)">
         <div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fas fa-bolt" style="color:var(--accent)"></i> Flash Sale (Opsional)</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -630,9 +583,7 @@ function showProductForm(id=null) {
           <div><label style="font-size:11px;display:block;margin-bottom:4px">Batas Waktu</label><input id="pFEnd" class="input" type="datetime-local" value="${p&&p.flashSaleEnd?new Date(p.flashSaleEnd).toISOString().slice(0,16):''}"></div>
         </div>
       </div>
-
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">URL Video Youtube (Opsional)</label><input id="pVideo" class="input" value="${p?p.videoUrl||'':''}" placeholder="https://youtube.com/embed/..."></div>
-
       <div style="display:flex;gap:8px;margin-top:8px">
         ${p?`<button type="button" class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i></button>`:''}
         <div style="flex:1"></div>
@@ -678,7 +629,7 @@ function renderKasir() {
         <div class="card" style="padding:6px;text-align:center;cursor:pointer;${ic?'border-color:var(--primary)':''}" onclick="addToCart('${p.id}')">
           <img src="${p.images[0]}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;margin-bottom:4px" onerror="this.src='https://picsum.photos/seed/${p.id}/200/200'">
           <div style="font-size:10px;font-weight:500;line-clamp:1">${p.name}</div>
-          <div style="font-size:11px;font-weight:700;color:var(--primary)">${formatRupiah(p.price)}</div>
+          <div style="font-size:11px;font-weight:400;color:var(--danger)">${formatRupiah(p.price)}</div>
           ${ic?`<div style="background:var(--primary);color:#fff;border-radius:4px;font-size:10px;font-weight:700;margin-top:2px">${ic.qty}x</div>`:''}
         </div>`}).join('')}
     </div>
@@ -812,7 +763,7 @@ function renderSewa() {
 }
 
 // ============================================================
-// PENGATURAN
+// PENGATURAN (TAMBAH INPUT BANNER & TOMBOL SAVE BESAR)
 // ============================================================
 function renderPengaturan() {
   const user = getUser();
@@ -827,18 +778,29 @@ function renderPengaturan() {
     </div>
 
     <div class="card" style="margin-bottom:16px">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Tampilan Katalog</h3>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div>
+          <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">URL Gambar Banner Header</label>
+          <input id="setBanner" class="input" value="${user.bannerUrl||''}" placeholder="https://contoh.com/gambar.jpg">
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Kosongkan jika ingin default. Ukuran rekomendasi: 800x300 px</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Profil Toko</h3>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Email (Tidak bisa diubah)</label><input class="input" value="${user.email}" disabled style="opacity:.6"></div>
         <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Nama Toko</label><input id="setStore" class="input" value="${user.storeName||''}"></div>
         <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Nama Pemilik</label><input id="setOwner" class="input" value="${user.ownerName||''}"></div>
-        <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">No. WhatsApp</label><input id="setPhone" class="input" value="${user.phone||''}"></div>
+        <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">No. WhatsApp (tanpa +)</label><input id="setPhone" class="input" value="${user.phone||''}"></div>
         <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">URL Google Maps</label><input id="setMap" class="input" value="${user.mapUrl||''}" placeholder="https://maps.app.goo.gl/..."></div>
         <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">URL Foto Profil (1:1)</label><input id="setPic" class="input" value="${user.profilePic||''}"></div>
       </div>
     </div>
 
-    <div class="card" style="margin-bottom:16px">
+    <div class="card" style="margin-bottom:24px">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="fas fa-palette"></i> Kustomisasi Tampilan</h3>
       <p style="font-size:11px;color:var(--text3);margin-bottom:10px">Atur warna halaman dan blok detail produk.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -847,7 +809,7 @@ function renderPengaturan() {
       </div>
     </div>
 
-    <button type="button" class="btn btn-primary" style="width:100%" onclick="saveSettings()"><i class="fas fa-save"></i> Simpan Semua Pengaturan</button>
+    <button type="button" class="btn btn-primary btn-lg" onclick="saveSettings()"><i class="fas fa-save"></i> Simpan Semua Pengaturan</button>
   `;
 }
 
@@ -858,13 +820,14 @@ function saveSettings() {
     phone: document.getElementById('setPhone').value.trim(),
     mapUrl: document.getElementById('setMap').value.trim(),
     profilePic: document.getElementById('setPic').value.trim(),
+    bannerUrl: document.getElementById('setBanner').value.trim(),
     pageBg: document.getElementById('setPageBg').value,
     blockBg: document.getElementById('setBlockBg').value
   });
   document.documentElement.style.setProperty('--page-bg', document.getElementById('setPageBg').value);
   document.documentElement.style.setProperty('--block-bg', document.getElementById('setBlockBg').value);
   document.getElementById('storeNameTop').textContent = document.getElementById('setStore').value.trim();
-  showToast('Pengaturan disimpan');
+  showToast('Pengaturan berhasil disimpan!');
 }
 
 document.addEventListener('DOMContentLoaded', () => {

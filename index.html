@@ -18,6 +18,7 @@
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent }
 body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--text-main); overflow:hidden; height:100dvh; width:100vw; }
 .page { display:none; height:calc(100dvh - 64px); overflow-y:auto; padding:16px; padding-bottom:100px; scroll-behavior:smooth }
+.page.public-page { height: calc(100dvh - 60px); } /* Header only, no bottom nav */
 .page.active { display:block; animation:fadeUp .3s ease }
 @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
@@ -136,7 +137,6 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
         <p style="letter-spacing:1px">1234567890 <button type="button" onclick="navigator.clipboard.writeText('1234567890');showToast('Nomor rekening disalin')" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:12px"><i class="fas fa-copy"></i></button></p>
         <p>a.n Tokoku Platform</p>
       </div>
-      <p style="font-size:11px;color:var(--text3)">*Nominal sesuai paket sewa bulanan</p>
     </div>
     <a id="waConfirmLink" href="#" target="_blank" class="btn btn-primary" style="width:100%;margin-bottom:10px;text-decoration:none;background:#25D366"><i class="fab fa-whatsapp"></i> Konfirmasi via WhatsApp</a>
     <button type="button" id="markPendingBtn" class="btn btn-accent" style="width:100%" onclick="markAsPending()"><i class="fas fa-check-circle"></i> Saya Sudah Chat Admin via WA</button>
@@ -155,12 +155,12 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
 
 <!-- ================= MAIN APP ================= -->
 <div id="app" style="display:none;height:100dvh;flex-direction:column;background:var(--page-bg)">
-  <header style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--block-bg);border-top:1px solid var(--border);flex-shrink:0;z-index:10">
+  <header style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--block-bg);border-bottom:1px solid var(--border);flex-shrink:0;z-index:10">
     <div style="display:flex;align-items:center;gap:10px">
-      <div id="storeAvatar" style="width:34px;height:34px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:800"></div>
+      <div id="storeAvatar" style="width:34px;height:34px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:800;overflow:hidden"></div>
       <div><div id="storeNameTop" style="font-size:15px;font-weight:700"></div><div style="font-size:11px;color:var(--text3)" id="greetingText"></div></div>
     </div>
-    <button type="button" onclick="navigateTo('pengaturan')" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer"><i class="fas fa-cog"></i></button>
+    <button type="button" id="headerSettingsBtn" onclick="navigateTo('pengaturan')" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer"><i class="fas fa-cog"></i></button>
   </header>
 
   <div style="flex:1;overflow:hidden;position:relative">
@@ -173,7 +173,7 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
     <div id="page-sewa" class="page"></div>
   </div>
 
-  <nav class="bottom-nav">
+  <nav id="bottomNav" class="bottom-nav">
     <div class="nav-item active" data-page="katalog" onclick="navigateTo('katalog')"><i class="fas fa-store"></i><span>Katalog</span></div>
     <div class="nav-item" data-page="kasir" onclick="navigateTo('kasir')"><i class="fas fa-cash-register"></i><span>Kasir</span></div>
     <div class="nav-center" onclick="showProductForm()"><i class="fas fa-plus"></i></div>
@@ -206,7 +206,7 @@ const DB = {
   set: (k, v) => localStorage.setItem(k, JSON.stringify(v))
 };
 
-let state = { currentUserId: null, cart: [], searchQuery: '' };
+let state = { currentUserId: null, cart: [], searchQuery: '', isPublicMode: false };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 function getUser() { const users = DB.get('tk_users') || []; return users.find(u => u.id === state.currentUserId) || {}; }
@@ -254,6 +254,7 @@ function registerUser() {
   DB.set('tk_users', users);
   
   state.currentUserId = newUser.id;
+  state.isPublicMode = false;
   DB.set('tk_lastUser', newUser.id);
   seedData(newUser.id);
   showToast('Akun berhasil dibuat! Trial 3 hari.');
@@ -268,6 +269,7 @@ function loginUser() {
   if(!user) return showToast('Email/password salah','error');
   
   state.currentUserId = user.id;
+  state.isPublicMode = false;
   DB.set('tk_lastUser', user.id);
   seedData(user.id);
   startApp();
@@ -280,56 +282,52 @@ function loginAdmin() {
   } else showToast('ID/Password Admin salah','error');
 }
 
-function logoutUser() { state.currentUserId=null; DB.set('tk_lastUser',null); closeMoreMenu(); switchScreen('authScreen'); showLogin(); }
+function logoutUser() { state.currentUserId=null; DB.set('tk_lastUser',null); closeMoreMenu(); if(window.location.search) window.history.replaceState({},document.title,window.location.pathname); switchScreen('authScreen'); showLogin(); }
 function logoutAdmin() { switchScreen('authScreen'); showLogin(); }
 
 function startApp() {
   const user = getUser();
   if(!user.id) return switchScreen('authScreen');
 
-  const isExpired = user.expiryDate < Date.now();
-  if(isExpired && user.pendingPayment) {
-    return switchScreen('pendingScreen');
-  } else if(isExpired) {
-    prepareExpiredScreen(user);
-    return switchScreen('expiredScreen');
+  // Jika bukan mode publik, cek masa sewa
+  if(!state.isPublicMode) {
+    const isExpired = user.expiryDate < Date.now();
+    if(isExpired && user.pendingPayment) return switchScreen('pendingScreen');
+    else if(isExpired) { prepareExpiredScreen(user); return switchScreen('expiredScreen'); }
   }
 
+  // Terapkan warna kustom
   document.documentElement.style.setProperty('--page-bg', user.pageBg || '#F3F4F6');
   document.documentElement.style.setProperty('--block-bg', user.blockBg || '#FFFFFF');
   
+  // Update Header
   document.getElementById('storeNameTop').textContent = user.storeName || 'Tokoku';
-  document.getElementById('storeAvatar').textContent = (user.storeName||'T').charAt(0);
-  document.getElementById('greetingText').textContent = 'Halo, ' + (user.ownerName||'') + '!';
+  const avatarEl = document.getElementById('storeAvatar');
+  if(user.profilePic) avatarEl.innerHTML = `<img src="${user.profilePic}" style="width:100%;height:100%;object-fit:cover">`;
+  else avatarEl.innerHTML = (user.storeName||'T').charAt(0);
   
+  document.getElementById('greetingText').textContent = state.isPublicMode ? 'Katalog Produk' : 'Halo, ' + (user.ownerName||'') + '!';
+  
+  // Atur visibilitas fitur pemilik
+  document.getElementById('headerSettingsBtn').style.display = state.isPublicMode ? 'none' : 'block';
+  document.getElementById('bottomNav').style.display = state.isPublicMode ? 'none' : 'flex';
+  
+  // Atur tinggi halaman katalog (karena tanpa bottom nav jika publik)
+  const katalogPage = document.getElementById('page-katalog');
+  if(state.isPublicMode) katalogPage.classList.add('public-page');
+  else katalogPage.classList.remove('public-page');
+
   switchScreen('app');
   navigateTo('katalog');
 }
 
 function prepareExpiredScreen(user) {
   const waText = `Halo Admin Tokoku, saya ingin konfirmasi pembayaran sewa aplikasi.\n\nNama Toko: ${user.storeName}\nEmail: ${user.email}\n\nSaya sudah transfer ke rekening/QRIS.`;
-  const waLink = `https://wa.me/${ADMIN_WA_NUMBER}?text=${encodeURIComponent(waText)}`;
-  document.getElementById('waConfirmLink').href = waLink;
-  document.getElementById('markPendingBtn').style.display = 'block';
-  document.getElementById('expiredScreen').querySelector('h2').textContent = 'Masa Sewa Habis';
-  document.getElementById('expiredScreen').querySelector('p').textContent = 'Silakan lakukan pembayaran untuk mengaktifkan kembali toko Anda.';
+  document.getElementById('waConfirmLink').href = `https://wa.me/${ADMIN_WA_NUMBER}?text=${encodeURIComponent(waText)}`;
 }
 
-function markAsPending() {
-  saveUser({ pendingPayment: true });
-  switchScreen('pendingScreen');
-  showToast('Menunggu konfirmasi Admin');
-}
-
-function checkActiveStatus() {
-  const user = getUser();
-  if(user.expiryDate >= Date.now()) {
-    startApp();
-    showToast('Akun Anda sudah aktif kembali!');
-  } else {
-    showToast('Belum dikonfirmasi oleh Admin', 'error');
-  }
-}
+function markAsPending() { saveUser({ pendingPayment: true }); switchScreen('pendingScreen'); showToast('Menunggu konfirmasi Admin'); }
+function checkActiveStatus() { const user = getUser(); if(user.expiryDate >= Date.now()) { startApp(); showToast('Akun Anda sudah aktif kembali!'); } else showToast('Belum dikonfirmasi oleh Admin', 'error'); }
 
 function renderAdmin() {
   const users = DB.get('tk_users') || [];
@@ -338,34 +336,19 @@ function renderAdmin() {
   const expired = users.filter(u => u.expiryDate < Date.now() && !u.pendingPayment);
 
   document.getElementById('adminContent').innerHTML = `
-    <div style="margin-bottom:20px">
-      <h2 style="font-size:18px;font-weight:700">Dashboard Admin</h2>
-      <p style="font-size:13px;color:var(--text2)">Kelola user, pembayaran, dan sewa platform.</p>
-    </div>
+    <div style="margin-bottom:20px"><h2 style="font-size:18px;font-weight:700">Dashboard Admin</h2><p style="font-size:13px;color:var(--text2)">Kelola user, pembayaran, dan sewa platform.</p></div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
       <div class="card" style="text-align:center"><div style="font-size:20px;font-weight:800;color:var(--primary)">${active.length}</div><div style="font-size:11px;color:var(--text3)">User Aktif</div></div>
       <div class="card" style="text-align:center;border-color:var(--accent)"><div style="font-size:20px;font-weight:800;color:var(--accent)">${pending.length}</div><div style="font-size:11px;color:var(--text3)">Pending Bayar</div></div>
       <div class="card" style="text-align:center;border-color:var(--danger)"><div style="font-size:20px;font-weight:800;color:var(--danger)">${expired.length}</div><div style="font-size:11px;color:var(--text3)">Expired</div></div>
     </div>
-
     <h3 style="font-weight:700;margin-bottom:10px"><i class="fas fa-clock" style="color:var(--accent)"></i> Permintaan Konfirmasi Pembayaran</h3>
     ${pending.length === 0 ? '<div class="card" style="margin-bottom:16px;color:var(--text3);font-size:13px">Tidak ada permintaan</div>' : pending.map(u => `
-      <div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px">
-        <div style="flex:1"><div style="font-weight:600">${u.storeName}</div><div style="font-size:11px;color:var(--text3)">${u.email} - ${u.phone}</div></div>
-        <button type="button" class="btn btn-primary btn-sm" onclick="adminActivate('${u.id}')">Aktifkan 30 Hari</button>
-      </div>
+      <div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-weight:600">${u.storeName}</div><div style="font-size:11px;color:var(--text3)">${u.email} - ${u.phone}</div></div><button type="button" class="btn btn-primary btn-sm" onclick="adminActivate('${u.id}')">Aktifkan 30 Hari</button></div>
     `).join('')}
-
     <h3 style="font-weight:700;margin-top:20px;margin-bottom:10px"><i class="fas fa-users"></i> Semua User</h3>
     ${users.map(u => `
-      <div class="card" style="margin-bottom:8px;padding:10px;display:flex;align-items:center;gap:10px">
-        <div style="flex:1">
-          <div style="font-weight:600;font-size:13px">${u.storeName} <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${u.expiryDate>=Date.now()?'rgba(16,185,129,.1);color:var(--primary)':'rgba(239,68,68,.1);color:var(--danger)'}">${u.expiryDate>=Date.now()?'AKTIF':'EXPIRED'}</span></div>
-          <div style="font-size:11px;color:var(--text3)">${u.email} | Exp: ${new Date(u.expiryDate).toLocaleDateString('id-ID')}</div>
-        </div>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="adminExtend('${u.id}')">+30 Hari</button>
-        <button type="button" class="btn btn-danger btn-sm" onclick="adminDeactivate('${u.id}')">Nonaktifkan</button>
-      </div>
+      <div class="card" style="margin-bottom:8px;padding:10px;display:flex;align-items:center;gap:10px"><div style="flex:1"><div style="font-weight:600;font-size:13px">${u.storeName} <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${u.expiryDate>=Date.now()?'rgba(16,185,129,.1);color:var(--primary)':'rgba(239,68,68,.1);color:var(--danger)'}">${u.expiryDate>=Date.now()?'AKTIF':'EXPIRED'}</span></div><div style="font-size:11px;color:var(--text3)">${u.email} | Exp: ${new Date(u.expiryDate).toLocaleDateString('id-ID')}</div></div><button type="button" class="btn btn-ghost btn-sm" onclick="adminExtend('${u.id}')">+30 Hari</button><button type="button" class="btn btn-danger btn-sm" onclick="adminDeactivate('${u.id}')">Nonaktifkan</button></div>
     `).join('')}
   `;
 }
@@ -388,11 +371,17 @@ function seedData(userId) {
 }
 
 function navigateTo(page) {
+  // Cegah akses halaman private jika mode publik
+  if(state.isPublicMode && !['katalog'].includes(page)) return;
+
   state.currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-'+page);
   if(el) el.classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  
+  if(!state.isPublicMode) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  }
 
   switch(page) {
     case 'katalog': renderKatalog(); break;
@@ -406,18 +395,15 @@ function navigateTo(page) {
 }
 
 // ============================================================
-// KATALOG PRODUK (HARGA MERAH REGULER & BANNER DARI DB)
+// KATALOG PRODUK
 // ============================================================
 function renderKatalog() {
   const user = getUser();
   const products = getData('products');
   const bannerSrc = user.bannerUrl || `https://picsum.photos/seed/banner${user.id}/800/300`;
   
-  const pg = document.getElementById('page-katalog');
-  pg.innerHTML = `
+  document.getElementById('page-katalog').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:16px">
-      
-      <!-- Header Banner -->
       <div style="position:relative;border-radius:16px;overflow:hidden;height:140px;background:linear-gradient(135deg,var(--primary),#059669)">
         <img src="${bannerSrc}" style="width:100%;height:100%;object-fit:cover;opacity:.7" onerror="this.style.display='none'">
         <div style="position:absolute;inset:0;padding:16px;display:flex;flex-direction:column;justify-content:flex-end">
@@ -425,13 +411,11 @@ function renderKatalog() {
         </div>
       </div>
 
-      <!-- Share Row -->
       <div style="display:flex;justify-content:space-between;align-items:center;padding:0 4px">
         <div style="font-weight:600;font-size:14px;color:var(--text2)"><i class="fas fa-store" style="color:var(--primary)"></i> ${user.storeName}</div>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="shareCatalog()"><i class="fas fa-paper-plane"></i> Bagikan Katalog</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="shareCatalog()"><i class="fas fa-paper-plane"></i> Bagikan</button>
       </div>
 
-      <!-- Grid Produk -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         ${products.map(p => `
           <div class="card" style="padding:0;overflow:hidden;cursor:pointer;border-radius:14px" onclick="showProductDetail('${p.id}')">
@@ -449,9 +433,10 @@ function renderKatalog() {
 
 function shareCatalog() {
   const user = getUser();
-  const shareData = { title: user.storeName, text: `Yuk cek katalog ${user.storeName}!`, url: window.location.href };
+  const publicUrl = window.location.origin + window.location.pathname + '?store=' + user.id;
+  const shareData = { title: user.storeName, text: `Yuk cek katalog ${user.storeName}!`, url: publicUrl };
   if(navigator.share) navigator.share(shareData).catch(()=>{});
-  else { navigator.clipboard.writeText(shareData.text+' '+shareData.url); showToast('Link katalog disalin'); }
+  else { navigator.clipboard.writeText(shareData.url); showToast('Link katalog publik disalin!'); }
 }
 
 // ============================================================
@@ -474,11 +459,7 @@ function showProductDetail(id) {
   mc.innerHTML = `
     <div class="modal-handle"></div>
     <div class="slider" style="border-radius:12px;overflow:hidden;margin-bottom:16px">
-      ${p.images.map((img, idx) => `
-        <div class="${img.includes('1000')?'tall':''}">
-          <img src="${img}" onerror="this.src='https://picsum.photos/seed/${p.id+idx}/400/400'">
-        </div>
-      `).join('')}
+      ${p.images.map((img, idx) => `<div class="${img.includes('1000')?'tall':''}"><img src="${img}" onerror="this.src='https://picsum.photos/seed/${p.id+idx}/400/400'"></div>`).join('')}
     </div>
     <div style="background:var(--block-bg);padding:16px;border-radius:14px;margin-bottom:16px">
       <h2 style="font-size:18px;font-weight:700;line-height:1.3">${p.name}</h2>
@@ -486,12 +467,7 @@ function showProductDetail(id) {
       ${isFlashSale ? `<div style="font-size:12px;color:var(--text3);text-decoration:line-through">${formatRupiah(p.price)}</div>` : ''}
       <div style="margin-top:8px;font-size:12px;color:var(--text2)"><i class="fas fa-shopping-bag"></i> ${p.sold||0} terjual &nbsp; <i class="fas fa-star" style="color:var(--accent)"></i> ${p.rating||'-.-'}</div>
     </div>
-    ${isFlashSale ? `
-    <div style="background:rgba(239,68,68,.05);padding:16px;border-radius:14px;margin-bottom:16px;border:1px solid rgba(239,68,68,.2)">
-      <div style="font-size:13px;font-weight:700;color:var(--danger);margin-bottom:8px"><i class="fas fa-bolt"></i> FLASH SALE berakhir dalam:</div>
-      <div class="countdown" id="cd_${p.id}"><span>00</span>:<span>00</span>:<span>00</span></div>
-    </div>
-    ` : ''}
+    ${isFlashSale ? `<div style="background:rgba(239,68,68,.05);padding:16px;border-radius:14px;margin-bottom:16px;border:1px solid rgba(239,68,68,.2)"><div style="font-size:13px;font-weight:700;color:var(--danger);margin-bottom:8px"><i class="fas fa-bolt"></i> FLASH SALE berakhir dalam:</div><div class="countdown" id="cd_${p.id}"><span>00</span>:<span>00</span>:<span>00</span></div></div>` : ''}
     <div style="background:var(--block-bg);padding:16px;border-radius:14px;margin-bottom:16px">
       ${p.variants && p.variants.length > 0 ? `<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;margin-bottom:6px">Varian</div><div style="display:flex;flex-wrap:wrap;gap:6px">${p.variants.map(v=>`<span style="padding:4px 10px;border-radius:20px;font-size:11px;background:var(--input-bg);border:1px solid var(--border)">${v}</span>`).join('')}</div></div>` : ''}
       <div style="font-size:12px;font-weight:700;margin-bottom:6px">Deskripsi</div>
@@ -501,12 +477,7 @@ function showProductDetail(id) {
       <a href="https://wa.me/${user.phone}?text=${encodeURIComponent(waText)}" target="_blank" class="btn btn-primary" style="flex:1;text-decoration:none;background:#25D366"><i class="fab fa-whatsapp"></i> Pesan WA</a>
       <a href="${user.mapUrl||'#'}" target="_blank" class="btn btn-accent" style="flex:1;text-decoration:none"><i class="fas fa-map-marker-alt"></i> Cek Lokasi</a>
     </div>
-    ${p.videoUrl ? `
-    <div style="background:var(--block-bg);padding:16px;border-radius:14px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fas fa-video"></i> Video Produk</div>
-      <iframe width="100%" height="200" src="${p.videoUrl}" frameborder="0" allowfullscreen style="border-radius:10px"></iframe>
-    </div>
-    ` : ''}
+    ${p.videoUrl ? `<div style="background:var(--block-bg);padding:16px;border-radius:14px;margin-bottom:16px"><div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fas fa-video"></i> Video Produk</div><iframe width="100%" height="200" src="${p.videoUrl}" frameborder="0" allowfullscreen style="border-radius:10px"></iframe></div>` : ''}
     <div style="background:var(--block-bg);padding:16px;border-radius:14px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <button type="button" onclick="toggleLike('${p.id}')" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:var(--danger)"><i class="fas fa-heart"></i> ${p.likes}</button>
@@ -514,18 +485,7 @@ function showProductDetail(id) {
         <button type="button" onclick="shareProduct('${p.id}')" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:var(--primary)"><i class="fas fa-paper-plane"></i> Bagikan</button>
       </div>
       <div style="max-height:200px;overflow-y:auto;border-top:1px solid var(--border);padding-top:10px">
-        ${p.comments.map(c => `
-          <div style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:12px;font-weight:700">${c.user}</span>
-              <div style="display:flex;gap:6px;align-items:center">
-                <span style="font-size:10px;color:var(--text3)">${timeAgo(c.time)}</span>
-                <button type="button" onclick="deleteComment('${p.id}','${c.id}')" style="font-size:10px;color:var(--danger);background:none;border:none;cursor:pointer"><i class="fas fa-trash-alt"></i></button>
-              </div>
-            </div>
-            <div style="font-size:13px;color:var(--text2);margin-top:2px">${c.text}</div>
-          </div>
-        `).join('')}
+        ${p.comments.map(c => `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700">${c.user}</span><div style="display:flex;gap:6px;align-items:center"><span style="font-size:10px;color:var(--text3)">${timeAgo(c.time)}</span>${!state.isPublicMode?`<button type="button" onclick="deleteComment('${p.id}','${c.id}')" style="font-size:10px;color:var(--danger);background:none;border:none;cursor:pointer"><i class="fas fa-trash-alt"></i></button>`:''}</div></div><div style="font-size:13px;color:var(--text2);margin-top:2px">${c.text}</div></div>`).join('')}
         ${p.comments.length===0?'<div style="font-size:12px;color:var(--text3);text-align:center">Belum ada komentar</div>':''}
       </div>
     </div>
@@ -549,245 +509,88 @@ function showProductDetail(id) {
 }
 
 function toggleLike(id) { const products=getData('products'); const p=products.find(x=>x.id===id); if(p){ p.likes++; setData('products',products); showProductDetail(id); } }
-function addComment(id) { const input=document.getElementById('commentInput_'+id); if(!input||!input.value.trim()) return; const products=getData('products'); const p=products.find(x=>x.id===id); if(p){ p.comments.push({id:'c_'+uid(),user:getUser().ownerName,text:input.value.trim(),time:Date.now()}); setData('products',products); showProductDetail(id); } }
+function addComment(id) { const input=document.getElementById('commentInput_'+id); if(!input||!input.value.trim()) return; const products=getData('products'); const p=products.find(x=>x.id===id); if(p){ p.comments.push({id:'c_'+uid(),user:getUser().ownerName || 'Pengunjung',text:input.value.trim(),time:Date.now()}); setData('products',products); showProductDetail(id); } }
 function deleteComment(pId, cId) { const products=getData('products'); const p=products.find(x=>x.id===pId); if(p){ p.comments=p.comments.filter(c=>c.id!==cId); setData('products',products); showProductDetail(pId); } }
-function shareProduct(id) { const p=getData('products').find(x=>x.id===id); navigator.clipboard.writeText(window.location.href+'#product-'+id); showToast('Link detail produk disalin!'); }
+function shareProduct(id) { navigator.clipboard.writeText(window.location.href+'#product-'+id); showToast('Link detail produk disalin!'); }
 
 // ============================================================
-// PRODUCT FORM
+// PRODUCT FORM (PRIVATE)
 // ============================================================
 function showProductForm(id=null) {
+  if(state.isPublicMode) return;
   const products = getData('products');
   const p = id ? products.find(x => x.id === id) : null;
   const mc = document.getElementById('genModalContent');
   mc.innerHTML = `
-    <div class="modal-handle"></div>
-    <h3 style="font-size:18px;font-weight:700;margin-bottom:16px">${p?'Edit':'Tambah'} Produk</h3>
+    <div class="modal-handle"></div><h3 style="font-size:18px;font-weight:700;margin-bottom:16px">${p?'Edit':'Tambah'} Produk</h3>
     <div style="display:flex;flex-direction:column;gap:12px">
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Nama</label><input id="pName" class="input" value="${p?p.name:''}"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Harga</label><input id="pPrice" class="input" type="number" value="${p?p.price:''}"></div>
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Stok</label><input id="pStock" class="input" type="number" value="${p?p.stock:''}"></div>
-      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Harga</label><input id="pPrice" class="input" type="number" value="${p?p.price:''}"></div><div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Stok</label><input id="pStock" class="input" type="number" value="${p?p.stock:''}"></div></div>
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Deskripsi</label><textarea id="pDesc" class="input" rows="3">${p?p.description:''}</textarea></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Jumlah Terjual</label><input id="pSold" class="input" type="number" value="${p?p.sold||0:0}"></div>
-        <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Rating (1-5)</label><input id="pRating" class="input" type="number" step="0.1" value="${p?p.rating||5:5}"></div>
-      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Jumlah Terjual</label><input id="pSold" class="input" type="number" value="${p?p.sold||0:0}"></div><div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Rating (1-5)</label><input id="pRating" class="input" type="number" step="0.1" value="${p?p.rating||5:5}"></div></div>
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Varian (pisah koma)</label><input id="pVars" class="input" value="${p?p.variants.join(', '):''}"></div>
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">URL Gambar (pisah spasi/enter)</label><textarea id="pImgs" class="input" rows="2">${p?p.images.join('\n'):''}</textarea></div>
-      <div class="card" style="background:var(--input-bg)">
-        <div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fas fa-bolt" style="color:var(--accent)"></i> Flash Sale (Opsional)</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div><label style="font-size:11px;display:block;margin-bottom:4px">Harga Sale</label><input id="pFPrice" class="input" type="number" value="${p?p.flashSalePrice||'':''}"></div>
-          <div><label style="font-size:11px;display:block;margin-bottom:4px">Batas Waktu</label><input id="pFEnd" class="input" type="datetime-local" value="${p&&p.flashSaleEnd?new Date(p.flashSaleEnd).toISOString().slice(0,16):''}"></div>
-        </div>
-      </div>
+      <div class="card" style="background:var(--input-bg)"><div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fas fa-bolt" style="color:var(--accent)"></i> Flash Sale (Opsional)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label style="font-size:11px;display:block;margin-bottom:4px">Harga Sale</label><input id="pFPrice" class="input" type="number" value="${p?p.flashSalePrice||'':''}"></div><div><label style="font-size:11px;display:block;margin-bottom:4px">Batas Waktu</label><input id="pFEnd" class="input" type="datetime-local" value="${p&&p.flashSaleEnd?new Date(p.flashSaleEnd).toISOString().slice(0,16):''}"></div></div></div>
       <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">URL Video Youtube (Opsional)</label><input id="pVideo" class="input" value="${p?p.videoUrl||'':''}" placeholder="https://youtube.com/embed/..."></div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        ${p?`<button type="button" class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i></button>`:''}
-        <div style="flex:1"></div>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal('genModal')">Batal</button>
-        <button type="button" class="btn btn-primary btn-sm" onclick="saveProduct('${id||''}')">Simpan</button>
-      </div>
-    </div>
-  `;
-  openModal('genModal');
-}
-
-function saveProduct(id) {
-  const name=document.getElementById('pName').value.trim(); const price=parseInt(document.getElementById('pPrice').value)||0; const stock=parseInt(document.getElementById('pStock').value)||0;
-  if(!name||!price) return showToast('Nama dan harga wajib diisi','error');
-  const products=getData('products');
-  const data = {
-    name, price, stock, description:document.getElementById('pDesc').value.trim(), category:'Lainnya',
-    sold:parseInt(document.getElementById('pSold').value)||0, rating:parseFloat(document.getElementById('pRating').value)||5,
-    variants:document.getElementById('pVars').value.split(',').map(v=>v.trim()).filter(Boolean),
-    images:document.getElementById('pImgs').value.split(/[\s\n]+/).filter(v=>v.startsWith('http')),
-    flashSalePrice:parseInt(document.getElementById('pFPrice').value)||null,
-    flashSaleEnd:document.getElementById('pFEnd').value?new Date(document.getElementById('pFEnd').value).getTime():null,
-    videoUrl:document.getElementById('pVideo').value.trim()
-  };
-  if(id) { const idx=products.findIndex(p=>p.id===id); if(idx>=0) products[idx]={...products[idx],...data}; }
-  else products.push({id:'p_'+uid(),...data,likes:0,comments:[]});
-  setData('products',products); closeModal('genModal'); renderKatalog(); showToast('Produk disimpan');
-}
-function deleteProduct(id) { setData('products',getData('products').filter(p=>p.id!==id)); closeModal('genModal'); renderKatalog(); showToast('Produk dihapus'); }
-
-// ============================================================
-// KASIR POS
-// ============================================================
-function renderKasir() {
-  const products = getData('products').filter(p=>p.stock>0);
-  const cart = state.cart;
-  const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
-  const pg = document.getElementById('page-kasir');
-  pg.innerHTML = `
-    <h1 style="font-size:20px;font-weight:800;margin-bottom:12px">Kasir</h1>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:80px">
-      ${products.map(p=>{ const ic=cart.find(c=>c.id===p.id); return `
-        <div class="card" style="padding:6px;text-align:center;cursor:pointer;${ic?'border-color:var(--primary)':''}" onclick="addToCart('${p.id}')">
-          <img src="${p.images[0]}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;margin-bottom:4px" onerror="this.src='https://picsum.photos/seed/${p.id}/200/200'">
-          <div style="font-size:10px;font-weight:500;line-clamp:1">${p.name}</div>
-          <div style="font-size:11px;font-weight:400;color:var(--danger)">${formatRupiah(p.price)}</div>
-          ${ic?`<div style="background:var(--primary);color:#fff;border-radius:4px;font-size:10px;font-weight:700;margin-top:2px">${ic.qty}x</div>`:''}
-        </div>`}).join('')}
-    </div>
-    ${cart.length>0?`
-    <div style="position:fixed;bottom:64px;left:0;right:0;background:var(--block-bg);border-top:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 -2px 10px rgba(0,0,0,.05)">
-      <div style="flex:1"><div style="font-size:12px;color:var(--text3)">${cart.reduce((s,c)=>s+c.qty,0)} item</div><div style="font-size:18px;font-weight:800;color:var(--primary)">${formatRupiah(total)}</div></div>
-      <button type="button" class="btn btn-accent" onclick="showCheckout()"><i class="fas fa-receipt"></i> Bayar</button>
-    </div>`:''}
-  `;
-}
-
-function addToCart(id) { const p=getData('products').find(x=>x.id===id); if(!p) return; const c=state.cart.find(x=>x.id===id); if(c){if(c.qty<p.stock)c.qty++;else return showToast('Stok habis','error');} else state.cart.push({id:p.id,name:p.name,price:p.price,qty:1,stock:p.stock}); renderKasir(); }
-function showCheckout() {
-  const total=state.cart.reduce((s,c)=>s+c.price*c.qty,0); const mc=document.getElementById('genModalContent');
-  mc.innerHTML=`<div class="modal-handle"></div><h3 style="font-size:18px;font-weight:700;margin-bottom:16px">Checkout</h3>
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <select id="cMethod" class="input"><option value="cash">Tunai</option><option value="transfer">Transfer</option><option value="ewallet">E-Wallet</option></select>
-      <div class="card"><div style="font-weight:600;margin-bottom:8px">Ringkasan</div>${state.cart.map(c=>`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>${c.name} x${c.qty}</span><span>${formatRupiah(c.price*c.qty)}</span></div>`).join('')}
-      <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-weight:800"><span>Total</span><span style="color:var(--primary)">${formatRupiah(total)}</span></div></div>
-      <button type="button" class="btn btn-primary" style="width:100%" onclick="processCheckout()"><i class="fas fa-check"></i> Proses</button>
+      <div style="display:flex;gap:8px;margin-top:8px">${p?`<button type="button" class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i></button>`:''}<div style="flex:1"></div><button type="button" class="btn btn-ghost btn-sm" onclick="closeModal('genModal')">Batal</button><button type="button" class="btn btn-primary btn-sm" onclick="saveProduct('${id||''}')">Simpan</button></div>
     </div>`;
   openModal('genModal');
 }
-function processCheckout() {
-  const trx={id:'t_'+uid(),items:state.cart.map(c=>({productId:c.id,name:c.name,qty:c.qty,price:c.price})),subtotal:state.cart.reduce((s,c)=>s+c.price*c.qty,0),total:state.cart.reduce((s,c)=>s+c.price*c.qty,0),method:document.getElementById('cMethod').value,customerName:'Walk-in',time:Date.now()};
-  const trxs=getData('transactions'); trxs.unshift(trx); setData('transactions',trxs);
-  let prods=getData('products'); state.cart.forEach(c=>{const p=prods.find(x=>x.id===c.id);if(p)p.stock-=c.qty;}); setData('products',prods);
-  state.cart=[]; closeModal('genModal'); renderKasir(); showToast('Transaksi berhasil!');
-}
+
+function saveProduct(id) { const name=document.getElementById('pName').value.trim(); const price=parseInt(document.getElementById('pPrice').value)||0; const stock=parseInt(document.getElementById('pStock').value)||0; if(!name||!price) return showToast('Nama dan harga wajib diisi','error'); const products=getData('products'); const data = { name, price, stock, description:document.getElementById('pDesc').value.trim(), category:'Lainnya', sold:parseInt(document.getElementById('pSold').value)||0, rating:parseFloat(document.getElementById('pRating').value)||5, variants:document.getElementById('pVars').value.split(',').map(v=>v.trim()).filter(Boolean), images:document.getElementById('pImgs').value.split(/[\s\n]+/).filter(v=>v.startsWith('http')), flashSalePrice:parseInt(document.getElementById('pFPrice').value)||null, flashSaleEnd:document.getElementById('pFEnd').value?new Date(document.getElementById('pFEnd').value).getTime():null, videoUrl:document.getElementById('pVideo').value.trim() }; if(id) { const idx=products.findIndex(p=>p.id===id); if(idx>=0) products[idx]={...products[idx],...data}; } else products.push({id:'p_'+uid(),...data,likes:0,comments:[]}); setData('products',products); closeModal('genModal'); renderKatalog(); showToast('Produk disimpan'); }
+function deleteProduct(id) { setData('products',getData('products').filter(p=>p.id!==id)); closeModal('genModal'); renderKatalog(); showToast('Produk dihapus'); }
 
 // ============================================================
-// CRM & INVENTORI
+// KASIR POS (PRIVATE)
 // ============================================================
-function exportToExcel(data, filename) {
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Data");
-  XLSX.writeFile(wb, filename + ".xlsx");
+function renderKasir() {
+  if(state.isPublicMode) return;
+  const products = getData('products').filter(p=>p.stock>0); const cart = state.cart; const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  document.getElementById('page-kasir').innerHTML = `<h1 style="font-size:20px;font-weight:800;margin-bottom:12px">Kasir</h1><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:80px">${products.map(p=>{ const ic=cart.find(c=>c.id===p.id); return `<div class="card" style="padding:6px;text-align:center;cursor:pointer;${ic?'border-color:var(--primary)':''}" onclick="addToCart('${p.id}')"><img src="${p.images[0]}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;margin-bottom:4px" onerror="this.src='https://picsum.photos/seed/${p.id}/200/200'"><div style="font-size:10px;font-weight:500;line-clamp:1">${p.name}</div><div style="font-size:11px;font-weight:400;color:var(--danger)">${formatRupiah(p.price)}</div>${ic?`<div style="background:var(--primary);color:#fff;border-radius:4px;font-size:10px;font-weight:700;margin-top:2px">${ic.qty}x</div>`:''}</div>`}).join('')}</div>${cart.length>0?`<div style="position:fixed;bottom:64px;left:0;right:0;background:var(--block-bg);border-top:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 -2px 10px rgba(0,0,0,.05)"><div style="flex:1"><div style="font-size:12px;color:var(--text3)">${cart.reduce((s,c)=>s+c.qty,0)} item</div><div style="font-size:18px;font-weight:800;color:var(--primary)">${formatRupiah(total)}</div></div><button type="button" class="btn btn-accent" onclick="showCheckout()"><i class="fas fa-receipt"></i> Bayar</button></div>`:''}`;
 }
-
-function renderCRM() {
-  const customers = getData('customers');
-  const pg = document.getElementById('page-crm');
-  pg.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h1 style="font-size:20px;font-weight:800">CRM</h1>
-      <button type="button" class="btn btn-primary btn-sm" onclick="exportToExcel(getData('customers').map(c=>({Nama:c.name,Telepon:c.phone,Total_Belanja:c.totalSpent,Pesanan:c.totalOrders})),'CRM_Customers')"><i class="fas fa-file-excel"></i> Export</button>
-    </div>
-    ${customers.map(c=>`
-      <div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px;padding:12px">
-        <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${c.name.charAt(0)}</div>
-        <div style="flex:1"><div style="font-weight:600;font-size:13px">${c.name}</div><div style="font-size:11px;color:var(--text3)">${c.phone}</div></div>
-        <div style="font-size:13px;font-weight:700;color:var(--primary)">${formatRupiah(c.totalSpent)}</div>
-      </div>
-    `).join('')}
-  `;
-}
-
-function renderInventori() {
-  const products = getData('products');
-  const pg = document.getElementById('page-inventori');
-  pg.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h1 style="font-size:20px;font-weight:800">Inventori</h1>
-      <button type="button" class="btn btn-primary btn-sm" onclick="exportToExcel(getData('products').map(p=>({Nama:p.name,Harga:p.price,Stok:p.stock,Terjual:p.sold||0})),'Inventory')"><i class="fas fa-file-excel"></i> Export</button>
-    </div>
-    ${products.map(p=>`
-      <div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px;padding:12px">
-        <img src="${p.images[0]}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.src='https://picsum.photos/seed/${p.id}/100/100'">
-        <div style="flex:1"><div style="font-weight:600;font-size:13px">${p.name}</div><div style="font-size:11px;color:var(--text3)">${formatRupiah(p.price)}</div></div>
-        <div style="text-align:right"><span style="font-size:14px;font-weight:800">${p.stock}</span><br><span style="font-size:10px;color:var(--text3)">stok</span></div>
-      </div>
-    `).join('')}
-  `;
-}
+function addToCart(id) { const p=getData('products').find(x=>x.id===id); if(!p) return; const c=state.cart.find(x=>x.id===id); if(c){if(c.qty<p.stock)c.qty++;else return showToast('Stok habis','error');} else state.cart.push({id:p.id,name:p.name,price:p.price,qty:1,stock:p.stock}); renderKasir(); }
+function showCheckout() { const total=state.cart.reduce((s,c)=>s+c.price*c.qty,0); const mc=document.getElementById('genModalContent'); mc.innerHTML=`<div class="modal-handle"></div><h3 style="font-size:18px;font-weight:700;margin-bottom:16px">Checkout</h3><div style="display:flex;flex-direction:column;gap:12px"><select id="cMethod" class="input"><option value="cash">Tunai</option><option value="transfer">Transfer</option><option value="ewallet">E-Wallet</option></select><div class="card"><div style="font-weight:600;margin-bottom:8px">Ringkasan</div>${state.cart.map(c=>`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>${c.name} x${c.qty}</span><span>${formatRupiah(c.price*c.qty)}</span></div>`).join('')}<div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-weight:800"><span>Total</span><span style="color:var(--primary)">${formatRupiah(total)}</span></div></div><button type="button" class="btn btn-primary" style="width:100%" onclick="processCheckout()"><i class="fas fa-check"></i> Proses</button></div>`; openModal('genModal'); }
+function processCheckout() { const trx={id:'t_'+uid(),items:state.cart.map(c=>({productId:c.id,name:c.name,qty:c.qty,price:c.price})),subtotal:state.cart.reduce((s,c)=>s+c.price*c.qty,0),total:state.cart.reduce((s,c)=>s+c.price*c.qty,0),method:document.getElementById('cMethod').value,customerName:'Walk-in',time:Date.now()}; const trxs=getData('transactions'); trxs.unshift(trx); setData('transactions',trxs); let prods=getData('products'); state.cart.forEach(c=>{const p=prods.find(x=>x.id===c.id);if(p)p.stock-=c.qty;}); setData('products',prods); state.cart=[]; closeModal('genModal'); renderKasir(); showToast('Transaksi berhasil!'); }
 
 // ============================================================
-// ANALITIK
+// CRM & INVENTORI (PRIVATE)
 // ============================================================
-function renderAnalitik() {
-  const user = getUser();
-  const pg = document.getElementById('page-analitik');
-  pg.innerHTML = `
-    <h1 style="font-size:20px;font-weight:800;margin-bottom:12px">Tracking Analitik</h1>
-    <div class="card" style="margin-bottom:16px">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Pasang ID Tracking</h3>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Google Tag Manager ID</label><input id="aGtm" class="input" value="${user.gtmId||''}" placeholder="GTM-XXXX"></div>
-        <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Meta Pixel ID</label><input id="aMeta" class="input" value="${user.metaPixelId||''}" placeholder="123456789"></div>
-        <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">TikTok Pixel ID</label><input id="aTiktok" class="input" value="${user.tiktokPixelId||''}" placeholder="CKXXXX"></div>
-        <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Custom Event Name</label><input id="aEvent" class="input" value="${user.customEvent||''}" placeholder="Purchase, Lead, dll"></div>
-        <button type="button" class="btn btn-primary btn-sm" style="width:100%" onclick="saveAnalytics()"><i class="fas fa-save"></i> Simpan & Aktifkan</button>
-      </div>
-    </div>
-  `;
-}
-function saveAnalytics() {
-  saveUser({
-    gtmId: document.getElementById('aGtm').value.trim(),
-    metaPixelId: document.getElementById('aMeta').value.trim(),
-    tiktokPixelId: document.getElementById('aTiktok').value.trim(),
-    customEvent: document.getElementById('aEvent').value.trim()
-  });
-  showToast('Analitik diperbarui');
-}
+function exportToExcel(data, filename) { const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data"); XLSX.writeFile(wb, filename + ".xlsx"); }
+function renderCRM() { if(state.isPublicMode) return; const customers = getData('customers'); document.getElementById('page-crm').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h1 style="font-size:20px;font-weight:800">CRM</h1><button type="button" class="btn btn-primary btn-sm" onclick="exportToExcel(getData('customers').map(c=>({Nama:c.name,Telepon:c.phone,Total_Belanja:c.totalSpent,Pesanan:c.totalOrders})),'CRM_Customers')"><i class="fas fa-file-excel"></i> Export</button></div>${customers.map(c=>`<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px;padding:12px"><div style="width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${c.name.charAt(0)}</div><div style="flex:1"><div style="font-weight:600;font-size:13px">${c.name}</div><div style="font-size:11px;color:var(--text3)">${c.phone}</div></div><div style="font-size:13px;font-weight:700;color:var(--primary)">${formatRupiah(c.totalSpent)}</div></div>`).join('')}`; }
+function renderInventori() { if(state.isPublicMode) return; const products = getData('products'); document.getElementById('page-inventori').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h1 style="font-size:20px;font-weight:800">Inventori</h1><button type="button" class="btn btn-primary btn-sm" onclick="exportToExcel(getData('products').map(p=>({Nama:p.name,Harga:p.price,Stok:p.stock,Terjual:p.sold||0})),'Inventory')"><i class="fas fa-file-excel"></i> Export</button></div>${products.map(p=>`<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px;padding:12px"><img src="${p.images[0]}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.src='https://picsum.photos/seed/${p.id}/100/100'"><div style="flex:1"><div style="font-weight:600;font-size:13px">${p.name}</div><div style="font-size:11px;color:var(--text3)">${formatRupiah(p.price)}</div></div><div style="text-align:right"><span style="font-size:14px;font-weight:800">${p.stock}</span><br><span style="font-size:10px;color:var(--text3)">stok</span></div></div>`).join('')}`; }
 
 // ============================================================
-// STATUS SEWA
+// ANALITIK (PRIVATE)
 // ============================================================
-function renderSewa() {
-  const user = getUser();
-  const daysLeft = Math.ceil((user.expiryDate - Date.now()) / 86400000);
-  const isExpired = daysLeft <= 0;
-  const waText = `Halo Admin Tokoku, saya ingin konfirmasi pembayaran sewa aplikasi.\n\nNama Toko: ${user.storeName}\nEmail: ${user.email}\n\nSaya sudah transfer ke rekening/QRIS.`;
-
-  document.getElementById('page-sewa').innerHTML = `
-    <h1 style="font-size:20px;font-weight:800;margin-bottom:16px">Status Sewa</h1>
-    <div class="card" style="text-align:center;margin-bottom:16px">
-      <div style="font-size:40px;font-weight:900;color:${isExpired?'var(--danger)':'var(--primary)'}">${isExpired?'EXPIRED':daysLeft+' Hari'}</div>
-      <p style="font-size:13px;color:var(--text2);margin-top:4px">${isExpired?'Masa sewa Anda telah habis':'Sisa waktu sewa toko Anda'}</p>
-    </div>
-    <div class="card">
-      <h3 style="font-weight:700;margin-bottom:8px">Pembayaran ke:</h3>
-      <div style="background:var(--input-bg);padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px">
-        <p><b>QRIS:</b> Scan QR di email konfirmasi</p>
-        <p><b>Bank BCA:</b> 1234567890 a.n Tokoku Platform</p>
-      </div>
-      <a href="https://wa.me/${ADMIN_WA_NUMBER}?text=${encodeURIComponent(waText)}" target="_blank" class="btn btn-primary" style="width:100%;text-decoration:none;background:#25D366;margin-bottom:8px"><i class="fab fa-whatsapp"></i> Konfirmasi via WhatsApp</a>
-    </div>
-  `;
-}
+function renderAnalitik() { if(state.isPublicMode) return; const user = getUser(); document.getElementById('page-analitik').innerHTML = `<h1 style="font-size:20px;font-weight:800;margin-bottom:12px">Tracking Analitik</h1><div class="card" style="margin-bottom:16px"><h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Pasang ID Tracking</h3><div style="display:flex;flex-direction:column;gap:10px"><div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Google Tag Manager ID</label><input id="aGtm" class="input" value="${user.gtmId||''}" placeholder="GTM-XXXX"></div><div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Meta Pixel ID</label><input id="aMeta" class="input" value="${user.metaPixelId||''}" placeholder="123456789"></div><div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">TikTok Pixel ID</label><input id="aTiktok" class="input" value="${user.tiktokPixelId||''}" placeholder="CKXXXX"></div><div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Custom Event Name</label><input id="aEvent" class="input" value="${user.customEvent||''}" placeholder="Purchase, Lead, dll"></div><button type="button" class="btn btn-primary btn-sm" style="width:100%" onclick="saveAnalytics()"><i class="fas fa-save"></i> Simpan & Aktifkan</button></div></div>`; }
+function saveAnalytics() { saveUser({ gtmId: document.getElementById('aGtm').value.trim(), metaPixelId: document.getElementById('aMeta').value.trim(), tiktokPixelId: document.getElementById('aTiktok').value.trim(), customEvent: document.getElementById('aEvent').value.trim() }); showToast('Analitik diperbarui'); }
 
 // ============================================================
-// PENGATURAN (TAMBAH INPUT BANNER & TOMBOL SAVE BESAR)
+// STATUS SEWA (PRIVATE)
+// ============================================================
+function renderSewa() { if(state.isPublicMode) return; const user = getUser(); const daysLeft = Math.ceil((user.expiryDate - Date.now()) / 86400000); const isExpired = daysLeft <= 0; const waText = `Halo Admin Tokoku, saya ingin konfirmasi pembayaran sewa aplikasi.\n\nNama Toko: ${user.storeName}\nEmail: ${user.email}\n\nSaya sudah transfer ke rekening/QRIS.`; document.getElementById('page-sewa').innerHTML = `<h1 style="font-size:20px;font-weight:800;margin-bottom:16px">Status Sewa</h1><div class="card" style="text-align:center;margin-bottom:16px"><div style="font-size:40px;font-weight:900;color:${isExpired?'var(--danger)':'var(--primary)'}">${isExpired?'EXPIRED':daysLeft+' Hari'}</div><p style="font-size:13px;color:var(--text2);margin-top:4px">${isExpired?'Masa sewa Anda telah habis':'Sisa waktu sewa toko Anda'}</p></div><div class="card"><h3 style="font-weight:700;margin-bottom:8px">Pembayaran ke:</h3><div style="background:var(--input-bg);padding:10px;border-radius:8px;font-size:13px;margin-bottom:12px"><p><b>QRIS:</b> Scan QR di email konfirmasi</p><p><b>Bank BCA:</b> 1234567890 a.n Tokoku Platform</p></div><a href="https://wa.me/${ADMIN_WA_NUMBER}?text=${encodeURIComponent(waText)}" target="_blank" class="btn btn-primary" style="width:100%;text-decoration:none;background:#25D366;margin-bottom:8px"><i class="fab fa-whatsapp"></i> Konfirmasi via WhatsApp</a></div>`; }
+
+// ============================================================
+// PENGATURAN (PRIVATE)
 // ============================================================
 function renderPengaturan() {
+  if(state.isPublicMode) return;
   const user = getUser();
-  const pg = document.getElementById('page-pengaturan');
-  pg.innerHTML = `
+  const avatarHtml = user.profilePic ? `<img src="${user.profilePic}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (user.storeName||'T').charAt(0);
+  
+  document.getElementById('page-pengaturan').innerHTML = `
     <h1 style="font-size:20px;font-weight:800;margin-bottom:16px">Pengaturan</h1>
-    
     <div class="card" style="margin-bottom:16px;text-align:center">
-      <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;font-weight:800">${(user.storeName||'T').charAt(0)}</div>
+      <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;font-weight:800;overflow:hidden">${avatarHtml}</div>
       <h2 style="font-size:18px;font-weight:700">${user.storeName}</h2>
       <p style="font-size:12px;color:var(--text3)">${user.email}</p>
     </div>
-
     <div class="card" style="margin-bottom:16px">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Tampilan Katalog</h3>
       <div style="display:flex;flex-direction:column;gap:10px">
-        <div>
-          <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">URL Gambar Banner Header</label>
-          <input id="setBanner" class="input" value="${user.bannerUrl||''}" placeholder="https://contoh.com/gambar.jpg">
-          <div style="font-size:10px;color:var(--text3);margin-top:4px">Kosongkan jika ingin default. Ukuran rekomendasi: 800x300 px</div>
-        </div>
+        <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">URL Gambar Banner Header</label><input id="setBanner" class="input" value="${user.bannerUrl||''}" placeholder="https://contoh.com/gambar.jpg"><div style="font-size:10px;color:var(--text3);margin-top:4px">Kosongkan jika ingin default. Ukuran rekomendasi: 800x300 px</div></div>
       </div>
     </div>
-
     <div class="card" style="margin-bottom:16px">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Profil Toko</h3>
       <div style="display:flex;flex-direction:column;gap:10px">
@@ -799,7 +602,6 @@ function renderPengaturan() {
         <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">URL Foto Profil (1:1)</label><input id="setPic" class="input" value="${user.profilePic||''}"></div>
       </div>
     </div>
-
     <div class="card" style="margin-bottom:24px">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px"><i class="fas fa-palette"></i> Kustomisasi Tampilan</h3>
       <p style="font-size:11px;color:var(--text3);margin-bottom:10px">Atur warna halaman dan blok detail produk.</p>
@@ -808,7 +610,6 @@ function renderPengaturan() {
         <div><label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Warna Blok/Card</label><input id="setBlockBg" class="input" type="color" value="${user.blockBg||'#FFFFFF'}" style="height:40px;padding:2px"></div>
       </div>
     </div>
-
     <button type="button" class="btn btn-primary btn-lg" onclick="saveSettings()"><i class="fas fa-save"></i> Simpan Semua Pengaturan</button>
   `;
 }
@@ -824,18 +625,31 @@ function saveSettings() {
     pageBg: document.getElementById('setPageBg').value,
     blockBg: document.getElementById('setBlockBg').value
   });
-  document.documentElement.style.setProperty('--page-bg', document.getElementById('setPageBg').value);
-  document.documentElement.style.setProperty('--block-bg', document.getElementById('setBlockBg').value);
-  document.getElementById('storeNameTop').textContent = document.getElementById('setStore').value.trim();
+  startApp(); // Refresh UI (Avatar, warna, dll)
   showToast('Pengaturan berhasil disimpan!');
 }
 
+// ============================================================
+// INISIALISASI APLIKASI
+// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const storeIdParam = urlParams.get('store');
   const lastUser = DB.get('tk_lastUser');
-  if(lastUser) {
+
+  if (lastUser) {
+    // Prioritas 1: User sudah login (Pemilik)
     state.currentUserId = lastUser;
-    const user = getUser();
-    if(user.id) startApp();
+    state.isPublicMode = false;
+    startApp();
+  } else if (storeIdParam) {
+    // Prioritas 2: Akses via Link Publik (Customer)
+    state.currentUserId = storeIdParam;
+    state.isPublicMode = true;
+    startApp();
+  } else {
+    // Prioritas 3: Belum login & bukan link publik
+    switchScreen('authScreen');
   }
 });
 </script>

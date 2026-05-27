@@ -7,10 +7,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- Menggunakan unpkg untuk Supabase (lebih stabil di beberapa jaringan) -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<!-- Menggunakan path spesifik .min.js untuk memastikan library ke-load -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root {
   --page-bg: #F3F4F6; --block-bg: #FFFFFF; --text-main: #1F2937; --text2: #6B7280; --text3: #9CA3AF;
@@ -29,7 +27,7 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
 
 .btn { padding:10px 20px; border-radius:12px; font-weight:600; font-size:14px; border:none; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:8px; justify-content:center; font-family:inherit }
 .btn:active { transform:scale(.96) }
-.btn-primary { background:var(--primary); color:#fff } .btn-primary:hover { background:var(--primary-d) }
+.btn-primary { background:var(--primary); color:#fff }
 .btn-accent { background:var(--accent); color:#000 }
 .btn-danger { background:var(--danger); color:#fff }
 .btn-ghost { background:transparent; color:var(--text2); border:1px solid var(--border) }
@@ -44,7 +42,7 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
 .nav-item i { font-size:20px } .nav-item span { font-size:10px; font-weight:600 }
 .nav-center { width:52px; height:52px; background:linear-gradient(135deg,var(--primary),#059669); border-radius:16px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px; cursor:pointer; box-shadow:0 4px 15px rgba(16,185,129,.3); margin-top:-20px }
 
-.card { background:var(--block-bg); border:1px solid var(--border); border-radius:14px; padding:16px; transition:all .2s }
+.card { background:var(--block-bg); border:1px solid var(--border); border-radius:14px; padding:16px; }
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; display:none; align-items:flex-end; justify-content:center }
 .modal-overlay.show { display:flex }
 .modal-content { background:var(--block-bg); border-radius:20px 20px 0 0; width:100%; max-width:480px; max-height:90dvh; overflow-y:auto; animation:slideUp .3s ease; padding:20px }
@@ -63,7 +61,7 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
 
 <div id="toast" class="toast"></div>
 
-<!-- ================= AUTH SCREEN ================= -->
+<!-- AUTH SCREEN -->
 <div id="authScreen" class="screen active">
   <div style="width:100%;max-width:400px;text-align:center">
     <div style="font-size:32px;font-weight:800;color:var(--primary)">FeedShop</div>
@@ -107,7 +105,7 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
   </div>
 </div>
 
-<!-- ================= MAIN APP ================= -->
+<!-- MAIN APP -->
 <div id="app" style="display:none;height:100dvh;flex-direction:column;background:var(--page-bg)">
   <header style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--block-bg);border-bottom:1px solid var(--border);flex-shrink:0;z-index:10">
     <div style="display:flex;align-items:center;gap:10px">
@@ -116,103 +114,79 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
     </div>
     <button type="button" id="headerSettingsBtn" onclick="navigateTo('pengaturan')" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer"><i class="fas fa-cog"></i></button>
   </header>
-
   <div style="flex:1;overflow:hidden;position:relative">
     <div id="page-katalog" class="page active"><div class="loader"></div></div>
-    <div id="page-kasir" class="page"><div class="loader"></div></div>
-    <div id="page-crm" class="page"><div class="loader"></div></div>
-    <div id="page-inventori" class="page"><div class="loader"></div></div>
-    <div id="page-analitik" class="page"><div class="loader"></div></div>
-    <div id="page-pengaturan" class="page"><div class="loader"></div></div>
-    <div id="page-sewa" class="page"><div class="loader"></div></div>
     <div id="page-admin" class="page"><div class="loader"></div></div>
   </div>
-
   <nav id="bottomNav" class="bottom-nav">
     <div class="nav-item active" data-page="katalog" onclick="navigateTo('katalog')"><i class="fas fa-store"></i><span>Katalog</span></div>
-    <div class="nav-item" data-page="kasir" onclick="navigateTo('kasir')"><i class="fas fa-cash-register"></i><span>Kasir</span></div>
-    <div class="nav-center" onclick="showProductForm()"><i class="fas fa-plus"></i></div>
-    <div class="nav-item" data-page="crm" onclick="navigateTo('crm')"><i class="fas fa-users"></i><span>CRM</span></div>
-    <div class="nav-item" data-page="more" onclick="toggleMoreMenu()"><i class="fas fa-ellipsis-h"></i><span>Lainnya</span></div>
+    <div class="nav-center" onclick="addDummyProduct()"><i class="fas fa-plus"></i></div>
+    <div class="nav-item" data-page="more" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i><span>Logout</span></div>
   </nav>
 </div>
 
-<div id="moreMenu" class="modal-overlay" onclick="closeMoreMenu(event)">
-  <div class="modal-content">
-    <div class="modal-handle"></div>
-    <div style="display:flex;flex-direction:column;gap:4px">
-      <button type="button" class="btn btn-ghost" style="justify-content:flex-start;width:100%" onclick="navigateTo('inventori');closeMoreMenu()"><i class="fas fa-warehouse" style="width:20px"></i>Inventori</button>
-      <button type="button" class="btn btn-ghost" style="justify-content:flex-start;width:100%" onclick="navigateTo('analitik');closeMoreMenu()"><i class="fas fa-chart-line" style="width:20px"></i>Analitik</button>
-      <button type="button" class="btn btn-ghost" style="justify-content:flex-start;width:100%" onclick="navigateTo('sewa');closeMoreMenu()"><i class="fas fa-calendar-check" style="width:20px"></i>Status Sewa</button>
-      <button type="button" class="btn btn-ghost" style="justify-content:flex-start;width:100%;color:var(--danger)" onclick="logoutUser()"><i class="fas fa-sign-out-alt" style="width:20px"></i>Logout</button>
-    </div>
-  </div>
-</div>
-
-<div id="genModal" class="modal-overlay" onclick="closeGenModal(event)">
+<div id="genModal" class="modal-overlay" onclick="if(event.target.id==='genModal') closeModal('genModal')">
   <div class="modal-content" id="genModalContent"></div>
 </div>
 
 <script>
 // ============================================================
-// KONFIGURASI SUPABASE (SUDAH DIISI)
-// ============================================================
-const SUPABASE_URL = 'https://dwmdjqowqfyeumqpmmbj.supabase.co'; 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3bWRqcW93cWZ5ZXVtcXBtbWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MjQwNzAsImV4cCI6MjA5NTQwMDA3MH0.48ryTQuNEFNGr3hxkk05EivVsPsF7JYn0uVw_JduSAQ';
-
-let supabase;
-try {
-  if (!window.supabase) {
-    throw new Error("Library Supabase JS gagal dimuat oleh browser. Coba matikan AdBlocker atau gunakan jaringan internet berbeda.");
-  }
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  console.log("Supabase berhasil terhubung!");
-} catch (error) {
-  console.error("Detail Error Supabase:", error);
-  alert("GAGAL KONEKSI SUPABASE:\n\n" + error.message);
-}
-
-const ADMIN_WA_NUMBER = '6281234567890'; // Ganti dengan nomor WA Anda
-let state = { currentUserId: null, currentRole: 'user', cart: [], isPublicMode: false };
-
-// ============================================================
-// UTILITY FUNCTIONS
+// 1. UI & UTILITY FUNCTIONS (Diletakkan di paling atas agar tidak error)
 // ============================================================
 function showToast(msg, type='success') { const t=document.getElementById('toast'); t.className='toast '+type; t.innerHTML=`<i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'}"></i> ${msg}`; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
 function openModal(id) { document.getElementById(id).classList.add('show') }
 function closeModal(id) { document.getElementById(id).classList.remove('show') }
-function closeGenModal(e) { if(e.target.id==='genModal') closeModal('genModal') }
-function toggleMoreMenu() { document.getElementById('moreMenu').classList.toggle('show') }
-function closeMoreMenu(e) { if(!e||e.target.id==='moreMenu') closeModal('moreMenu') }
-function formatRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID') }
-function timeAgo(ts) { if(!ts) return '-'; const d=Date.now()-new Date(ts).getTime(); if(d<6e4) return 'Baru saja'; if(d<36e5) return Math.floor(d/6e4)+' mnt lalu'; if(d<864e5) return Math.floor(d/36e5)+' jam lalu'; return Math.floor(d/864e5)+' hari lalu'; }
 
 function showLogin() { document.getElementById('loginForm').style.display='block'; document.getElementById('registerForm').style.display='none'; document.getElementById('adminLoginForm').style.display='none'; }
 function showRegister() { document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='block'; document.getElementById('adminLoginForm').style.display='none'; }
 function showAdminLogin() { document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='none'; document.getElementById('adminLoginForm').style.display='block'; }
 
 function switchScreen(id) {
-  const screens = ['authScreen', 'app']; 
-  screens.forEach(s => {
+  ['authScreen', 'app'].forEach(s => {
     const el = document.getElementById(s);
-    if(el) {
-      el.classList.remove('active');
-      if(s === 'app') el.style.display = 'none';
-    }
+    if(el) { el.classList.remove('active'); if(s === 'app') el.style.display = 'none'; }
   });
-  
   const target = document.getElementById(id);
-  if(target) {
-    target.classList.add('active');
-    if(id === 'app') target.style.display = 'flex';
-  }
+  if(target) { target.classList.add('active'); if(id === 'app') target.style.display = 'flex'; }
 }
 
+function navigateTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-'+page);
+  if(el) { el.classList.add('active'); el.innerHTML = '<div class="loader"></div>'; }
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  if(page === 'katalog') renderKatalog();
+  if(page === 'admin') renderAdmin();
+}
+
+function formatRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+
 // ============================================================
-// AUTH SYSTEM (SUPABASE)
+// 2. KONFIGURASI & KONEKSI SUPABASE
+// ============================================================
+const SUPABASE_URL = 'https://dwmdjqowqfyeumqpmmbj.supabase.co'; 
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3bWRqcW93cWZ5ZXVtcXBtbWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MjQwNzAsImV4cCI6MjA5NTQwMDA3MH0.48ryTQuNEFNGr3hxkk05EivVsPsF7JYn0uVw_JduSAQ';
+
+let supabase;
+try {
+  if (window.supabase && window.supabase.createClient) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log("Supabase berhasil terhubung!");
+  } else {
+    console.error("Objek window.supabase tidak ditemukan. CDN gagal dimuat.");
+  }
+} catch (error) {
+  console.error("Error koneksi Supabase:", error);
+}
+
+const ADMIN_WA_NUMBER = '6281234567890'; 
+let state = { currentUserId: null, currentRole: 'user', isPublicMode: false };
+
+// ============================================================
+// 3. AUTH SYSTEM
 // ============================================================
 async function registerUser() {
-  if(!supabase) return showToast('Koneksi database gagal','error');
+  if(!supabase) return showToast('Database belum terhubung','error');
   const email = document.getElementById('regEmail').value.trim();
   const pass = document.getElementById('regPass').value;
   const store = document.getElementById('regStore').value.trim();
@@ -231,7 +205,7 @@ async function registerUser() {
 }
 
 async function loginUser() {
-  if(!supabase) return showToast('Koneksi database gagal','error');
+  if(!supabase) return showToast('Database belum terhubung','error');
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPass').value;
   const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -239,7 +213,7 @@ async function loginUser() {
 }
 
 async function loginAdmin() {
-  if(!supabase) return showToast('Koneksi database gagal','error');
+  if(!supabase) return showToast('Database belum terhubung','error');
   const email = document.getElementById('adminEmail').value.trim();
   const pass = document.getElementById('adminPass').value;
   const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -248,10 +222,10 @@ async function loginAdmin() {
   if(profile?.role !== 'admin') { await supabase.auth.signOut(); return showToast('Bukan akun Admin', 'error'); }
 }
 
-async function logoutUser() { if(supabase) await supabase.auth.signOut(); closeMoreMenu(); switchScreen('authScreen'); showLogin(); }
+async function logoutUser() { if(supabase) await supabase.auth.signOut(); switchScreen('authScreen'); showLogin(); }
 
 // ============================================================
-// APP INITIALIZATION
+// 4. APP INITIALIZATION
 // ============================================================
 async function startApp(userId, isPublic = false) {
   if(!supabase) return;
@@ -259,23 +233,11 @@ async function startApp(userId, isPublic = false) {
   
   const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
   if(error || !profile) {
-    document.getElementById('page-katalog').innerHTML = `<div style="text-align:center;padding:40px"><i class="fas fa-exclamation-triangle" style="font-size:48px;color:var(--danger);margin-bottom:16px"></i><h2>Gagal Memuat Profil</h2><p style="color:var(--text2);margin-top:8px">Pastikan Anda sudah menjalankan kode SQL di Supabase.</p></div>`;
+    document.getElementById('page-katalog').innerHTML = `<div style="text-align:center;padding:40px"><i class="fas fa-exclamation-triangle" style="font-size:48px;color:var(--danger);margin-bottom:16px"></i><h2>Profil Tidak Ditemukan</h2><p style="color:var(--text2);margin-top:8px">Pastikan tabel profiles dan Trigger SQL sudah dijalankan dengan benar di Supabase.</p><p style="color:var(--danger);font-size:12px;margin-top:8px">Error: ${error?.message || 'Data kosong'}</p></div>`;
     switchScreen('app'); return;
   }
 
   state.currentRole = profile.role;
-  if(!isPublic && profile.role === 'user') {
-    const isExpired = new Date(profile.expiry_date) < new Date();
-    if(isExpired && profile.status === 'pending') {
-      document.getElementById('page-katalog').innerHTML = `<div style="text-align:center;padding:40px"><i class="fas fa-clock" style="font-size:48px;color:var(--accent);margin-bottom:16px"></i><h2>Menunggu Konfirmasi Pembayaran</h2><button type="button" class="btn btn-ghost" style="margin-top:16px" onclick="startApp(state.currentUserId)"><i class="fas fa-sync-alt"></i> Cek Status</button></div>`;
-      switchScreen('app'); return;
-    } else if(isExpired) {
-      const waText = `Halo Admin FeedShop, saya ingin konfirmasi pembayaran sewa.\n\nToko: ${profile.store_name}\nEmail: ${profile.email}`;
-      document.getElementById('page-katalog').innerHTML = `<div style="text-align:center;padding:40px"><i class="fas fa-hourglass-end" style="font-size:48px;color:var(--danger);margin-bottom:16px"></i><h2>Masa Sewa Habis</h2><a href="https://wa.me/${ADMIN_WA_NUMBER}?text=${encodeURIComponent(waText)}" target="_blank" class="btn btn-primary" style="margin-top:16px;background:#25D366;text-decoration:none"><i class="fab fa-whatsapp"></i> Konfirmasi via WA</a><button type="button" class="btn btn-accent" style="margin-top:8px" onclick="requestActivation()"><i class="fas fa-check-circle"></i> Saya Sudah Transfer</button></div>`;
-      switchScreen('app'); return;
-    }
-  }
-
   document.documentElement.style.setProperty('--page-bg', profile.page_bg || '#F3F4F6');
   document.documentElement.style.setProperty('--block-bg', profile.block_bg || '#FFFFFF');
   document.getElementById('storeNameTop').textContent = profile.store_name || 'FeedShop';
@@ -289,26 +251,8 @@ async function startApp(userId, isPublic = false) {
   navigateTo(profile.role === 'admin' ? 'admin' : 'katalog');
 }
 
-async function requestActivation() {
-  await supabase.from('profiles').update({ status: 'pending' }).eq('id', state.currentUserId);
-  showToast('Permintaan terkirim ke Admin'); startApp(state.currentUserId);
-}
-
-function navigateTo(page) {
-  if(state.isPublicMode && !['katalog'].includes(page)) return;
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const el = document.getElementById('page-'+page);
-  if(el) { el.classList.add('active'); el.innerHTML = '<div class="loader"></div>'; }
-  if(!state.isPublicMode) document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
-
-  switch(page) {
-    case 'katalog': renderKatalog(); break;
-    case 'admin': renderAdmin(); break;
-  }
-}
-
 // ============================================================
-// CATALOG & PRODUCTS
+// 5. KATALOG
 // ============================================================
 async function renderKatalog() {
   if(!supabase) return;
@@ -343,9 +287,8 @@ function shareCatalog() {
   else { navigator.clipboard.writeText(publicUrl); showToast('Link katalog publik disalin!'); }
 }
 
-// Tombol Tambah Produk (Sederhana untuk testing koneksi DB)
-async function showProductForm() {
-  if(state.isPublicMode || state.currentRole==='admin') return;
+async function addDummyProduct() {
+  if(!supabase || state.currentRole==='admin') return;
   const name = prompt("Masukkan Nama Produk:");
   const price = parseInt(prompt("Masukkan Harga:"));
   if(name && price) {
@@ -354,13 +297,13 @@ async function showProductForm() {
       images: ['https://picsum.photos/seed/'+Date.now()+'/800/800'], 
       variants: [], comments: []
     });
-    if(error) showToast('Gagal menambah produk: ' + error.message, 'error');
+    if(error) showToast('Gagal: ' + error.message, 'error');
     else { showToast('Produk berhasil ditambahkan!'); renderKatalog(); }
   }
 }
 
 // ============================================================
-// ADMIN DASHBOARD
+// 6. ADMIN DASHBOARD
 // ============================================================
 async function renderAdmin() {
   if(!supabase) return;
@@ -383,10 +326,11 @@ async function adminActivate(id) {
 }
 
 // ============================================================
-// INISIALISASI SAAT HALAMAN DIMUAT
+// 7. INISIALISASI SAAT HALAMAN DIMUAT
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
   if(!supabase) {
+    alert("GAGAL: Library Supabase tidak ditemukan. Pastikan tidak ada AdBlocker yang memblokir cdn.jsdelivr.net");
     switchScreen('authScreen');
     return;
   }

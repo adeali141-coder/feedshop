@@ -1,24 +1,31 @@
 <script>
 // ============================================================
-// KONFIGURASI SUPABASE (WAJIB DIISI DENGAN BENAR)
+// KONFIGURASI SUPABASE
 // ============================================================
-const SUPABASE_URL = 'https://dwmdjqowqfyeumqpmmbj.supabase.co'; // GANTI INI
-const SUPABASE_ANON_KEY = 'sb_publishable_wR0vuiSYy8-uQ9AUIyNbWA_o9tKZyoo'; // GANTI INI
+const SUPABASE_URL = 'https://dwmdjqowqfyeumqpmmbj.supabase.co'; 
+const SUPABASE_ANON_KEY = 'PASTE_KUNCI_ANON_PANJANG_ANDA_DISINI'; // Ganti dengan kunci yang diawali eyJ...
 
 let supabase;
-let isAdminMode = false;
 
-// Inisialisasi Supabase dengan aman (Try-Catch)
+// Inisialisasi dengan deteksi error yang lebih detail
 try {
-  if(SUPABASE_URL.includes('YOUR_PROJECT_ID') || SUPABASE_ANON_KEY.includes('YOUR_ANON_KEY')) {
-    alert("PERHATIAN: Anda belum memasukkan SUPABASE_URL dan SUPABASE_ANON_KEY. Aplikasi tidak bisa tersambung ke database. Silakan edit kodenya terlebih dahulu.");
-  } else {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  if (!window.supabase) {
+    throw new Error("Library Supabase JS tidak berhasil dimuat oleh browser. Coba matikan AdBlocker atau gunakan jaringan internet berbeda.");
   }
+  
+  if(SUPABASE_ANON_KEY.includes('PASTE_KUNCI_ANON') || SUPABASE_ANON_KEY.length < 20) {
+    throw new Error("Anda belum memasukkan SUPABASE_ANON_KEY yang benar. Pastikan mengambil kunci 'anon public' dari menu Settings -> API.");
+  }
+
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log("Supabase berhasil terhubung!"); // Pesan ini akan muncul di Inspect Element -> Console jika sukses
+  
 } catch (error) {
-  console.error("Gagal menyambungkan ke Supabase:", error);
-  alert("Gagal menyambungkan ke Supabase. Pastikan URL dan Anon Key sudah benar.");
+  console.error("Detail Error Supabase:", error);
+  alert("GAGAL KONEKSI SUPABASE:\n\n" + error.message);
 }
+
+// ... (sisanya kode Anda tetap sama mulai dari const ADMIN_WA_NUMBER dst...)
 
 const ADMIN_WA_NUMBER = '6281234567890'; // Ganti dengan nomor WA Anda
 let state = { currentUserId: null, currentRole: 'user', cart: [], isPublicMode: false };

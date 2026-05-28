@@ -98,12 +98,17 @@ async function addComment(id) { const i=document.getElementById('commentInput_'+
 async function renderAdmin() { if(!db) return; const {data:users}=await db.from('profiles').select('*').order('created_at',{ascending:false}); document.getElementById('page-admin').innerHTML=`<h1 style="font-size:20px;font-weight:800;margin-bottom:16px">Super Admin</h1>${users.filter(u=>u.status==='pending').map(u=>`<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-weight:600">${u.store_name}</div><div style="font-size:11px;color:var(--text3)">${u.email}</div></div><button type="button" class="btn btn-primary" onclick="adminActivate('${u.id}')">Aktifkan</button></div>`).join('')||'<div class="card" style="color:var(--text3)">Tidak ada permintaan</div>'}`; }
 async function adminActivate(id) { await db.from('profiles').update({expiry_date:new Date(Date.now()+30*86400000).toISOString(),status:'active'}).eq('id',id); renderAdmin(); showToast('User diaktifkan'); }
 
-// == NEW: FULL PRODUCT EDITOR (FORM) ==
+// == NEW: FULL PRODUCT EDITOR (FORM) DENGAN KATEGORI GANDA ==
 async function showProductForm(productId=null) {
   if(!db || state.isPublicMode || state.currentRole==='admin') return;
   let p = { name:'', price:0, stock:0, category:'', description:'', images:[], variants:[], flash_sale_price:null, flash_sale_end:null, video_url:'', sold:0, rating:5.0 };
   if(productId) { const {data}=await db.from('products').select('*').eq('id',productId).single(); if(data) p=data; }
   
+  // AMBIL DAFTAR KATEGORI YANG SUDAH ADA DI DATABASE
+  const { data: existingProds } = await db.from('products').select('category').eq('store_id', state.currentUserId);
+  const categories = [...new Set((existingProds||[]).map(x => x.category).filter(Boolean))];
+  const categoryOptions = categories.map(c => `<option value="${c}">`).join('');
+
   const mc = document.getElementById('genModalContent');
   mc.innerHTML = `
     <div class="modal-handle"></div>
@@ -114,7 +119,15 @@ async function showProductForm(productId=null) {
         <div><label style="font-weight:600;display:block;margin-bottom:4px">Harga (Rp)</label><input id="pPrice" class="input" type="number" value="${p.price}"></div>
         <div><label style="font-weight:600;display:block;margin-bottom:4px">Stok</label><input id="pStock" class="input" type="number" value="${p.stock}"></div>
       </div>
-      <div><label style="font-weight:600;display:block;margin-bottom:4px">Kategori</label><input id="pCat" class="input" value="${p.category}" placeholder="Minuman, Makanan, dll"></div>
+      
+      <!-- KATEGORI DENGAN DATALIST (BISA KETIK BARU / PILIH YANG LAMA) -->
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:4px">Kategori</label>
+        <input id="pCat" class="input" list="categoryList" value="${p.category}" placeholder="Ketik baru atau pilih...">
+        <datalist id="categoryList">${categoryOptions}</datalist>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px"><i class="fas fa-info-circle"></i> Pilih yang ada atau ketik kategori baru</div>
+      </div>
+
       <div><label style="font-weight:600;display:block;margin-bottom:4px">Deskripsi</label><textarea id="pDesc" class="input" rows="3" style="resize:none">${p.description}</textarea></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div><label style="font-weight:600;display:block;margin-bottom:4px">Terjual</label><input id="pSold" class="input" type="number" value="${p.sold}"></div>

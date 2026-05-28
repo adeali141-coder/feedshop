@@ -98,16 +98,18 @@ async function addComment(id) { const i=document.getElementById('commentInput_'+
 async function renderAdmin() { if(!db) return; const {data:users}=await db.from('profiles').select('*').order('created_at',{ascending:false}); document.getElementById('page-admin').innerHTML=`<h1 style="font-size:20px;font-weight:800;margin-bottom:16px">Super Admin</h1>${users.filter(u=>u.status==='pending').map(u=>`<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-weight:600">${u.store_name}</div><div style="font-size:11px;color:var(--text3)">${u.email}</div></div><button type="button" class="btn btn-primary" onclick="adminActivate('${u.id}')">Aktifkan</button></div>`).join('')||'<div class="card" style="color:var(--text3)">Tidak ada permintaan</div>'}`; }
 async function adminActivate(id) { await db.from('profiles').update({expiry_date:new Date(Date.now()+30*86400000).toISOString(),status:'active'}).eq('id',id); renderAdmin(); showToast('User diaktifkan'); }
 
-// == FULL PRODUCT EDITOR DENGAN KATEGORI GANDA (FIXED) ==
+// == FULL PRODUCT EDITOR DENGAN SELECT + INPUT DINAMIS ==
 async function showProductForm(productId=null) {
   if(!db || state.isPublicMode || state.currentRole==='admin') return;
   let p = { name:'', price:0, stock:0, category:'', description:'', images:[], variants:[], flash_sale_price:null, flash_sale_end:null, video_url:'', sold:0, rating:5.0 };
   if(productId) { const {data}=await db.from('products').select('*').eq('id',productId).single(); if(data) p=data; }
   
-  // FIX: Paksa query fresh dan buat format option yang lebih eksplisit
+  // Ambil kategori unik yang sudah ada
   const { data: freshProds } = await db.from('products').select('category').eq('store_id', state.currentUserId);
   const uniqueCats = [...new Set((freshProds||[]).map(x=>x.category).filter(Boolean))];
-  const datalistOptions = uniqueCats.map(c => `<option value="${c}">${c}</option>`).join('');
+  
+  // Jika kategori produk saat ini belum ada di list (kasus jarang, tapi jaga2), tambahkan
+  if(p.category && !uniqueCats.includes(p.category)) uniqueCats.push(p.category);
 
   const mc = document.getElementById('genModalContent');
   mc.innerHTML = `
@@ -120,12 +122,21 @@ async function showProductForm(productId=null) {
         <div><label style="font-weight:600;display:block;margin-bottom:4px">Stok</label><input id="pStock" class="input" type="number" value="${p.stock}"></div>
       </div>
       
-      <!-- KATEGORI DENGAN DATALIST -->
+      <!-- KATEGORI BARU: SELECT + INPUT DINAMIS -->
       <div>
         <label style="font-weight:600;display:block;margin-bottom:4px">Kategori</label>
-        <input id="pCat" class="input" list="categoryDatalist" value="${p.category}" placeholder="Ketik baru atau pilih...">
-        <datalist id="categoryDatalist">${datalistOptions}</datalist>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px"><i class="fas fa-info-circle"></i> Pilih yang ada atau ketik kategori baru</div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <div style="flex:1;min-width:0">
+            <select id="pCatSelect" class="input" onchange="handleCatChange(this)">
+              <option value="" disabled ${!p.category?'selected':''}>Pilih kategori...</option>
+              <option value="__new__">➕ Tambah Baru...</option>
+              ${uniqueCats.map(c => `<option value="${c}" ${p.category===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div id="newCatWrap" style="flex:1;min-width:0;display:none">
+            <input id="pCatNew" class="input" placeholder="Ketik kategori baru...">
+          </div>
+        </div>
       </div>
 
       <div><label style="font-weight:600;display:block;margin-bottom:4px">Deskripsi</label><textarea id="pDesc" class="input" rows="3" style="resize:none">${p.description}</textarea></div>
@@ -156,10 +167,31 @@ async function showProductForm(productId=null) {
   openModal('genModal');
 }
 
+// Fungsi helper untuk toggle input kategori baru
+function handleCatChange(el) {
+  const wrap = document.getElementById('newCatWrap');
+  const input = document.getElementById('pCatNew');
+  if(el.value === '__new__') {
+    wrap.style.display = 'block';
+    input.focus();
+  } else {
+    wrap.style.display = 'none';
+    input.value = '';
+  }
+}
+
 async function saveProduct(id) {
+  // Tangkap logika Kategori Baru
+  let category = document.getElementById('pCatSelect').value;
+  if(category === '__new__') {
+    category = document.getElementById('pCatNew').value.trim();
+  }
+  if(!category) return showToast('Kategori wajib diisi','error');
+
   const d = {
     name: document.getElementById('pName').value.trim(), price: parseInt(document.getElementById('pPrice').value)||0, stock: parseInt(document.getElementById('pStock').value)||0,
-    category: document.getElementById('pCat').value.trim(), description: document.getElementById('pDesc').value.trim(),
+    category: category, // Pake variabel category yang udah diproses
+    description: document.getElementById('pDesc').value.trim(),
     sold: parseInt(document.getElementById('pSold').value)||0, rating: parseFloat(document.getElementById('pRating').value)||5,
     variants: document.getElementById('pVars').value.split(',').map(v=>v.trim()).filter(Boolean),
     images: document.getElementById('pImgs').value.split(/[\s\n]+/).filter(v=>v.startsWith('http')),

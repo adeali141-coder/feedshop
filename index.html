@@ -1,12 +1,300 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>Test FeedShop</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>FeedShop - Platform Toko Online</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root { --page-bg: #F3F4F6; --block-bg: #FFFFFF; --text-main: #1F2937; --text2: #6B7280; --text3: #9CA3AF; --primary: #10B981; --primary-d: #059669; --accent: #F59E0B; --danger: #EF4444; --border: #E5E7EB; --input-bg: #F9FAFB; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--text-main); overflow:hidden; height:100dvh; width:100vw; }
+.page { display:none; height:calc(100dvh - 64px); overflow-y:auto; padding:16px; padding-bottom:100px; }
+.page.active { display:block; animation:fadeUp .3s ease }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.screen { display:none; height:100dvh; width:100vw; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:var(--page-bg) }
+.screen.active { display:flex }
+.btn { padding:10px 20px; border-radius:12px; font-weight:600; font-size:14px; border:none; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:8px; justify-content:center; font-family:inherit }
+.btn:active { transform:scale(.96) }
+.btn-primary { background:var(--primary); color:#fff }
+.btn-ghost { background:transparent; color:var(--text2); border:1px solid var(--border) }
+.btn-danger { background:var(--danger); color:#fff }
+.input { width:100%; padding:10px 14px; background:var(--input-bg); border:1px solid var(--border); border-radius:10px; color:var(--text-main); font-size:14px; font-family:inherit; outline:none; }
+.input:focus { border-color:var(--primary) }
+.bottom-nav { position:fixed; bottom:0; left:0; right:0; height:64px; background:var(--block-bg); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-around; z-index:50; }
+.nav-item { display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; padding:6px 12px; color:var(--text3); min-width:56px }
+.nav-item.active { color:var(--primary) }
+.nav-item i { font-size:20px } .nav-item span { font-size:10px; font-weight:600 }
+.nav-center { width:52px; height:52px; background:linear-gradient(135deg,var(--primary),#059669); border-radius:16px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px; cursor:pointer; box-shadow:0 4px 15px rgba(16,185,129,.3); margin-top:-20px }
+.card { background:var(--block-bg); border:1px solid var(--border); border-radius:14px; padding:16px; }
+.toast { position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-100px); background:var(--block-bg); border:1px solid var(--border); border-radius:12px; padding:12px 20px; z-index:200; transition:transform .3s ease; font-size:14px; font-weight:500; display:flex; align-items:center; gap:8px; box-shadow:0 10px 25px rgba(0,0,0,.1) }
+.toast.show { transform:translateX(-50%) translateY(0) }
+.toast.success { border-color:var(--primary); color:var(--primary) }
+.toast.error { border-color:var(--danger); color:var(--danger) }
+.line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden }
+.loader { border:4px solid rgba(0,0,0,.1); border-radius:50%; border-top:4px solid var(--primary); width:30px; height:30px; animation:spin 1s linear infinite; margin:20px auto; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
 </head>
-<body style="background:#111; color:#0f0; padding:40px; font-family:sans-serif">
-    <h1>HALAMAN INI BERHASIL DI-UPDATE!</h1>
-    <p>Jika Anda melihat tulisan ini, berarti GitHub Pages sudah membaca file baru Anda.</p>
-    <button onclick="alert('JavaScript Berhasil Jalan!')" style="padding:10px 20px; font-size:16px; cursor:pointer">Tes Tombol JS</button>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen" class="screen active">
+  <div style="width:100%;max-width:400px;text-align:center">
+    <div style="font-size:32px;font-weight:800;color:var(--primary)">FeedShop</div>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:24px">Platform Sewa Toko Online</p>
+    
+    <div id="loginForm">
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:16px">Login User</h2>
+      <div style="display:flex;flex-direction:column;gap:12px;text-align:left">
+        <input id="loginEmail" class="input" type="email" placeholder="Email">
+        <input id="loginPass" class="input" type="password" placeholder="Password">
+        <button type="button" class="btn btn-primary" style="width:100%" onclick="loginUser()">Masuk</button>
+      </div>
+      <p style="margin-top:16px;font-size:13px;color:var(--text2)">Belum punya akun? <a href="#" onclick="showRegister(); return false;" style="color:var(--primary);font-weight:600">Daftar</a></p>
+      <hr style="margin:20px 0;border-color:var(--border)">
+      <button type="button" class="btn btn-ghost" style="width:100%" onclick="showAdminLogin()">Login Super Admin</button>
+    </div>
+
+    <div id="registerForm" style="display:none">
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:16px">Buat Akun Baru</h2>
+      <div style="display:flex;flex-direction:column;gap:12px;text-align:left">
+        <input id="regEmail" class="input" type="email" placeholder="Email">
+        <input id="regPass" class="input" type="password" placeholder="Password (min 6 karakter)">
+        <input id="regStore" class="input" placeholder="Nama Toko">
+        <input id="regOwner" class="input" placeholder="Nama Pemilik">
+        <input id="regPhone" class="input" type="tel" placeholder="No. WhatsApp">
+        <button type="button" class="btn btn-primary" style="width:100%" onclick="registerUser()">Daftar</button>
+      </div>
+      <p style="margin-top:16px;font-size:13px;color:var(--text2)">Sudah punya akun? <a href="#" onclick="showLogin(); return false;" style="color:var(--primary);font-weight:600">Masuk</a></p>
+    </div>
+
+    <div id="adminLoginForm" style="display:none">
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:16px">Super Admin</h2>
+      <div style="display:flex;flex-direction:column;gap:12px;text-align:left">
+        <input id="adminEmail" class="input" type="email" placeholder="Email Admin">
+        <input id="adminPass" class="input" type="password" placeholder="Password">
+        <button type="button" class="btn btn-danger" style="width:100%" onclick="loginAdmin()">Masuk Admin</button>
+      </div>
+      <p style="margin-top:16px;font-size:13px;color:var(--text2)"><a href="#" onclick="showLogin(); return false;" style="color:var(--primary);font-weight:600">Kembali ke Login User</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;height:100dvh;flex-direction:column;background:var(--page-bg)">
+  <header style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--block-bg);border-bottom:1px solid var(--border);z-index:10">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div id="storeAvatar" style="width:34px;height:34px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:800;overflow:hidden"></div>
+      <div><div id="storeNameTop" style="font-size:15px;font-weight:700"></div><div style="font-size:11px;color:var(--text3)" id="greetingText"></div></div>
+    </div>
+    <button type="button" onclick="logoutUser()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer"><i class="fas fa-sign-out-alt"></i></button>
+  </header>
+  <div style="flex:1;overflow:hidden;position:relative">
+    <div id="page-katalog" class="page active"><div class="loader"></div></div>
+    <div id="page-admin" class="page"><div class="loader"></div></div>
+  </div>
+  <nav class="bottom-nav">
+    <div class="nav-item active" onclick="renderKatalog()"><i class="fas fa-store"></i><span>Katalog</span></div>
+    <div class="nav-center" onclick="addDummyProduct()"><i class="fas fa-plus"></i></div>
+    <div class="nav-item" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i><span>Logout</span></div>
+  </nav>
+</div>
+
+<script>
+// PENGUJIAN: JIKA ALERT INI MUNCUL, BERARTI JS BERHASIL DI-LOAD 100%
+alert("FeedShop JS Berhasil Dimuat!");
+
+// ============================================================
+// 1. FUNGSI UI (Diletakkan paling atas agar tombol pasti berfungsi)
+// ============================================================
+function showLogin() { document.getElementById('loginForm').style.display='block'; document.getElementById('registerForm').style.display='none'; document.getElementById('adminLoginForm').style.display='none'; }
+function showRegister() { document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='block'; document.getElementById('adminLoginForm').style.display='none'; }
+function showAdminLogin() { document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='none'; document.getElementById('adminLoginForm').style.display='block'; }
+
+function switchScreen(id) {
+  document.getElementById('authScreen').classList.remove('active');
+  const appEl = document.getElementById('app');
+  appEl.classList.remove('active'); appEl.style.display = 'none';
+  
+  const target = document.getElementById(id);
+  if(target) { target.classList.add('active'); if(id === 'app') target.style.display = 'flex'; }
+}
+
+function showToast(msg, type='success') { 
+  const t=document.getElementById('toast'); 
+  t.className='toast '+type; 
+  t.innerHTML=`<i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'}"></i> ${msg}`; 
+  t.classList.add('show'); 
+  setTimeout(()=>t.classList.remove('show'),2500); 
+}
+
+function formatRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+
+// ============================================================
+// 2. KONEKSI SUPABASE
+// ============================================================
+const SUPABASE_URL = 'https://dwmdjqowqfyeumqpmmbj.supabase.co'; 
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3bWRqcW93cWZ5ZXVtcXBtbWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MjQwNzAsImV4cCI6MjA5NTQwMDA3MH0.48ryTQuNEFNGr3hxkk05EivVsPsF7JYn0uVw_JduSAQ';
+
+let supabase = null; // Default null
+
+// Coba hubungkan Supabase dengan aman
+try {
+  if (window.supabase && window.supabase.createClient) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log("Supabase berhasil terhubung!");
+  } else {
+    console.error("Library Supabase JS tidak ditemukan. Mungkin diblokir AdBlocker.");
+  }
+} catch (error) {
+  console.error("Gagal menyambungkan ke Supabase:", error);
+}
+
+let state = { currentUserId: null, currentRole: 'user' };
+
+// ============================================================
+// 3. AUTH SYSTEM
+// ============================================================
+async function registerUser() {
+  if(!supabase) return showToast('Gagal: Library DB tidak termuat. Matikan AdBlocker Anda.','error');
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const store = document.getElementById('regStore').value.trim();
+  const owner = document.getElementById('regOwner').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  if(!email||!pass||!store) return showToast('Wajib isi email, password, nama toko','error');
+
+  const { data, error } = await supabase.auth.signUp({
+    email, password: pass,
+    options: { data: { store_name: store, owner_name: owner, phone: phone } }
+  });
+
+  if(error) return showToast(error.message, 'error');
+  showToast('Berhasil daftar! Cek email verifikasi, lalu login.');
+  showLogin();
+}
+
+async function loginUser() {
+  if(!supabase) return showToast('Gagal: Library DB tidak termuat','error');
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+  if(error) return showToast('Login gagal: ' + error.message, 'error');
+}
+
+async function loginAdmin() {
+  if(!supabase) return showToast('Gagal: Library DB tidak termuat','error');
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPass').value;
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+  if(error) return showToast('Login gagal', 'error');
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+  if(profile?.role !== 'admin') { await supabase.auth.signOut(); return showToast('Bukan Admin', 'error'); }
+}
+
+async function logoutUser() { if(supabase) await supabase.auth.signOut(); switchScreen('authScreen'); showLogin(); }
+
+// ============================================================
+// 4. APP INITIALIZATION
+// ============================================================
+async function startApp(userId) {
+  if(!supabase) return;
+  state.currentUserId = userId;
+  
+  const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  if(error || !profile) {
+    document.getElementById('page-katalog').innerHTML = `<div style="text-align:center;padding:40px;color:red"><h2>Profil Tidak Ditemukan di Database</h2><p>Pastikan Anda sudah menjalankan kode SQL pembuat tabel & Trigger di Supabase.</p></div>`;
+    switchScreen('app'); return;
+  }
+
+  state.currentRole = profile.role;
+  document.getElementById('storeNameTop').textContent = profile.store_name || 'FeedShop';
+  document.getElementById('storeAvatar').innerHTML = (profile.store_name||'F').charAt(0);
+  document.getElementById('greetingText').textContent = profile.role === 'admin' ? 'Super Admin' : 'Halo, ' + (profile.owner_name||'');
+  
+  switchScreen('app');
+  if(profile.role === 'admin') renderAdmin(); else renderKatalog();
+}
+
+// ============================================================
+// 5. KATALOG
+// ============================================================
+async function renderKatalog() {
+  if(!supabase) return;
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', state.currentUserId).single();
+  const { data: products } = await supabase.from('products').select('*').eq('store_id', state.currentUserId);
+  
+  document.getElementById('page-katalog').innerHTML = `
+    <h2 style="font-size:20px;font-weight:800;margin-bottom:16px">Katalog ${profile.store_name}</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${(products||[]).map(p => `
+        <div class="card" style="padding:0;overflow:hidden;border-radius:14px">
+          <img src="${p.images[0]}" style="width:100%;aspect-ratio:1/1;object-fit:cover" onerror="this.src='https://picsum.photos/seed/${p.id}/400/400'">
+          <div style="padding:10px"><div style="font-size:12px;font-weight:500">${p.name}</div><div style="font-size:14px;font-weight:400;color:var(--danger);margin-top:4px">${formatRupiah(p.price)}</div></div>
+        </div>
+      `).join('') || '<p style="color:var(--text3)">Belum ada produk. Klik tombol + untuk menambah.</p>'}
+    </div>`;
+}
+
+async function addDummyProduct() {
+  if(!supabase || state.currentRole==='admin') return;
+  const name = prompt("Masukkan Nama Produk:");
+  const price = parseInt(prompt("Masukkan Harga:"));
+  if(name && price) {
+    const { error } = await supabase.from('products').insert({
+      store_id: state.currentUserId, name, price, 
+      images: ['https://picsum.photos/seed/'+Date.now()+'/800/800'], 
+      variants: [], comments: []
+    });
+    if(error) showToast('Gagal: ' + error.message, 'error');
+    else { showToast('Produk ditambahkan!'); renderKatalog(); }
+  }
+}
+
+// ============================================================
+// 6. ADMIN DASHBOARD
+// ============================================================
+async function renderAdmin() {
+  if(!supabase) return;
+  const { data: users } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+  document.getElementById('page-admin').innerHTML = `
+    <h1 style="font-size:20px;font-weight:800;margin-bottom:16px">Super Admin</h1>
+    ${users.filter(u=>u.status==='pending').map(u => `
+      <div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-weight:600">${u.store_name}</div><div style="font-size:11px;color:var(--text3)">${u.email}</div></div><button type="button" class="btn btn-primary" onclick="adminActivate('${u.id}')">Aktifkan</button></div>
+    `).join('') || '<div class="card" style="color:var(--text3)">Tidak ada permintaan</div>'}`;
+}
+
+async function adminActivate(id) { 
+  await supabase.from('profiles').update({ expiry_date: new Date(Date.now() + 30*86400000).toISOString(), status: 'active' }).eq('id', id); 
+  renderAdmin(); showToast('User diaktifkan'); 
+}
+
+// ============================================================
+// 7. STARTUP
+// ============================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  if(!supabase) { switchScreen('authScreen'); return; }
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session && session.user) { startApp(session.user.id); } 
+    else { switchScreen('authScreen'); }
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) startApp(session.user.id);
+      else if (event === 'SIGNED_OUT') { switchScreen('authScreen'); showLogin(); }
+    });
+  } catch (error) {
+    console.error("Startup error:", error);
+    switchScreen('authScreen');
+  }
+});
+</script>
 </body>
 </html>

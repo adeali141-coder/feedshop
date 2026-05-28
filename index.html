@@ -107,11 +107,11 @@ body { font-family:'Poppins',sans-serif; background:var(--page-bg); color:var(--
 </div>
 
 <script>
-// PENGUJIAN: JIKA ALERT INI MUNCUL, BERARTI JS BERHASIL DI-LOAD 100%
-alert("FeedShop JS Berhasil Dimuat!");
+// PENGUJIAN: ALERT INI HARUS MUNCUL PERTAMA KALI
+alert("FeedShop JS Berhasil Dimuat! Klik OK.");
 
 // ============================================================
-// 1. FUNGSI UI (Diletakkan paling atas agar tombol pasti berfungsi)
+// 1. FUNGSI UI
 // ============================================================
 function showLogin() { document.getElementById('loginForm').style.display='block'; document.getElementById('registerForm').style.display='none'; document.getElementById('adminLoginForm').style.display='none'; }
 function showRegister() { document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='block'; document.getElementById('adminLoginForm').style.display='none'; }
@@ -121,7 +121,6 @@ function switchScreen(id) {
   document.getElementById('authScreen').classList.remove('active');
   const appEl = document.getElementById('app');
   appEl.classList.remove('active'); appEl.style.display = 'none';
-  
   const target = document.getElementById(id);
   if(target) { target.classList.add('active'); if(id === 'app') target.style.display = 'flex'; }
 }
@@ -137,20 +136,19 @@ function showToast(msg, type='success') {
 function formatRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
 
 // ============================================================
-// 2. KONEKSI SUPABASE
+// 2. KONEKSI SUPABASE (Menggunakan variabel 'db' agar tidak bentrok dengan library)
 // ============================================================
 const SUPABASE_URL = 'https://dwmdjqowqfyeumqpmmbj.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3bWRqcW93cWZ5ZXVtcXBtbWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MjQwNzAsImV4cCI6MjA5NTQwMDA3MH0.48ryTQuNEFNGr3hxkk05EivVsPsF7JYn0uVw_JduSAQ';
 
-let supabase = null; // Default null
+let db = null; // Diubah dari supabase ke db
 
-// Coba hubungkan Supabase dengan aman
 try {
   if (window.supabase && window.supabase.createClient) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log("Supabase berhasil terhubung!");
   } else {
-    console.error("Library Supabase JS tidak ditemukan. Mungkin diblokir AdBlocker.");
+    console.error("Library Supabase JS tidak ditemukan.");
   }
 } catch (error) {
   console.error("Gagal menyambungkan ke Supabase:", error);
@@ -159,10 +157,10 @@ try {
 let state = { currentUserId: null, currentRole: 'user' };
 
 // ============================================================
-// 3. AUTH SYSTEM
+// 3. AUTH SYSTEM (Menggunakan db)
 // ============================================================
 async function registerUser() {
-  if(!supabase) return showToast('Gagal: Library DB tidak termuat. Matikan AdBlocker Anda.','error');
+  if(!db) return showToast('Gagal: Library DB tidak termuat.','error');
   const email = document.getElementById('regEmail').value.trim();
   const pass = document.getElementById('regPass').value;
   const store = document.getElementById('regStore').value.trim();
@@ -170,7 +168,7 @@ async function registerUser() {
   const phone = document.getElementById('regPhone').value.trim();
   if(!email||!pass||!store) return showToast('Wajib isi email, password, nama toko','error');
 
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await db.auth.signUp({
     email, password: pass,
     options: { data: { store_name: store, owner_name: owner, phone: phone } }
   });
@@ -181,35 +179,35 @@ async function registerUser() {
 }
 
 async function loginUser() {
-  if(!supabase) return showToast('Gagal: Library DB tidak termuat','error');
+  if(!db) return showToast('Gagal: Library DB tidak termuat','error');
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPass').value;
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
   if(error) return showToast('Login gagal: ' + error.message, 'error');
 }
 
 async function loginAdmin() {
-  if(!supabase) return showToast('Gagal: Library DB tidak termuat','error');
+  if(!db) return showToast('Gagal: Library DB tidak termuat','error');
   const email = document.getElementById('adminEmail').value.trim();
   const pass = document.getElementById('adminPass').value;
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
   if(error) return showToast('Login gagal', 'error');
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
-  if(profile?.role !== 'admin') { await supabase.auth.signOut(); return showToast('Bukan Admin', 'error'); }
+  const { data: profile } = await db.from('profiles').select('role').eq('id', data.user.id).single();
+  if(profile?.role !== 'admin') { await db.auth.signOut(); return showToast('Bukan Admin', 'error'); }
 }
 
-async function logoutUser() { if(supabase) await supabase.auth.signOut(); switchScreen('authScreen'); showLogin(); }
+async function logoutUser() { if(db) await db.auth.signOut(); switchScreen('authScreen'); showLogin(); }
 
 // ============================================================
 // 4. APP INITIALIZATION
 // ============================================================
 async function startApp(userId) {
-  if(!supabase) return;
+  if(!db) return;
   state.currentUserId = userId;
   
-  const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  const { data: profile, error } = await db.from('profiles').select('*').eq('id', userId).single();
   if(error || !profile) {
-    document.getElementById('page-katalog').innerHTML = `<div style="text-align:center;padding:40px;color:red"><h2>Profil Tidak Ditemukan di Database</h2><p>Pastikan Anda sudah menjalankan kode SQL pembuat tabel & Trigger di Supabase.</p></div>`;
+    document.getElementById('page-katalog').innerHTML = `<div style="text-align:center;padding:40px;color:red"><h2>Profil Tidak Ditemukan</h2><p>Pastikan tabel profiles dan Trigger SQL sudah dijalankan di Supabase.</p></div>`;
     switchScreen('app'); return;
   }
 
@@ -226,9 +224,9 @@ async function startApp(userId) {
 // 5. KATALOG
 // ============================================================
 async function renderKatalog() {
-  if(!supabase) return;
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', state.currentUserId).single();
-  const { data: products } = await supabase.from('products').select('*').eq('store_id', state.currentUserId);
+  if(!db) return;
+  const { data: profile } = await db.from('profiles').select('*').eq('id', state.currentUserId).single();
+  const { data: products } = await db.from('products').select('*').eq('store_id', state.currentUserId);
   
   document.getElementById('page-katalog').innerHTML = `
     <h2 style="font-size:20px;font-weight:800;margin-bottom:16px">Katalog ${profile.store_name}</h2>
@@ -243,11 +241,11 @@ async function renderKatalog() {
 }
 
 async function addDummyProduct() {
-  if(!supabase || state.currentRole==='admin') return;
+  if(!db || state.currentRole==='admin') return;
   const name = prompt("Masukkan Nama Produk:");
   const price = parseInt(prompt("Masukkan Harga:"));
   if(name && price) {
-    const { error } = await supabase.from('products').insert({
+    const { error } = await db.from('products').insert({
       store_id: state.currentUserId, name, price, 
       images: ['https://picsum.photos/seed/'+Date.now()+'/800/800'], 
       variants: [], comments: []
@@ -261,8 +259,8 @@ async function addDummyProduct() {
 // 6. ADMIN DASHBOARD
 // ============================================================
 async function renderAdmin() {
-  if(!supabase) return;
-  const { data: users } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+  if(!db) return;
+  const { data: users } = await db.from('profiles').select('*').order('created_at', { ascending: false });
   document.getElementById('page-admin').innerHTML = `
     <h1 style="font-size:20px;font-weight:800;margin-bottom:16px">Super Admin</h1>
     ${users.filter(u=>u.status==='pending').map(u => `
@@ -271,7 +269,7 @@ async function renderAdmin() {
 }
 
 async function adminActivate(id) { 
-  await supabase.from('profiles').update({ expiry_date: new Date(Date.now() + 30*86400000).toISOString(), status: 'active' }).eq('id', id); 
+  await db.from('profiles').update({ expiry_date: new Date(Date.now() + 30*86400000).toISOString(), status: 'active' }).eq('id', id); 
   renderAdmin(); showToast('User diaktifkan'); 
 }
 
@@ -279,14 +277,14 @@ async function adminActivate(id) {
 // 7. STARTUP
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
-  if(!supabase) { switchScreen('authScreen'); return; }
+  if(!db) { switchScreen('authScreen'); return; }
 
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await db.auth.getSession();
     if (session && session.user) { startApp(session.user.id); } 
     else { switchScreen('authScreen'); }
 
-    supabase.auth.onAuthStateChange((event, session) => {
+    db.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) startApp(session.user.id);
       else if (event === 'SIGNED_OUT') { switchScreen('authScreen'); showLogin(); }
     });
